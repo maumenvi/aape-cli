@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "file_navigation",
+      "description": "Lists and reads local files and directories safely; a standard filesystem skill.",
+      "usesTools": ["read_file", "list_directory"],
+      "source": "basic",
+      "path": "skills/basic/file-navigation.ts",
+      "version": "1.0.0"
+    },
+    {
+      "name": "web_navigation",
+      "description": "Fetches and summarizes remote web pages; comparable to common browser/search workflows.",
+      "usesTools": ["fetch_url"],
+      "source": "basic",
+      "path": "skills/basic/web-navigation.ts",
+      "version": "1.0.0"
+    },
+    {
+      "name": "repo_overview",
+      "description": "Summarizes repository structure, key files, and documentation for quick onboarding.",
+      "usesTools": ["read_file", "list_directory"],
+      "source": "basic",
+      "path": "skills/basic/repo-overview.ts",
+      "version": "1.0.0"
+    },
+    {
+      "name": "task_planning",
+      "description": "Breaks a request into actionable steps and expected outputs before execution.",
+      "usesTools": ["read_file"],
+      "source": "basic",
+      "path": "skills/basic/task-planning.ts",
+      "version": "1.0.0"
+    },
+    {
+      "name": "discovery",
+      "description": "Discovers tools, skills and MCP entries from the local registry and configured repositories.",
+      "usesTools": ["read_file", "fetch_url"],
+      "source": "local",
+      "path": "skills/imports/discovery.ts",
+      "version": "1.0.0"
+    }
+  ]
+}

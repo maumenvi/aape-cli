@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@maumenvi/aape": [
+        "./src/index.ts"
+      ]
+    },
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "data/**/*.ts",
+    "src/**/*.tsx",
+    "examples/**/*.ts",
+    "tests/**/*.ts",
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+  ]
+}

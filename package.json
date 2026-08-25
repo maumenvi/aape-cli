@@ -1,0 +1,58 @@
+{
+  "name": "@maumenvi/aape",
+  "version": "1.4.0",
+  "description": "HTTP framework with autonomous agent pipeline engine",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "bin": {
+    "aape": "./dist/src/cli/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "http",
+    "framework",
+    "pipeline",
+    "routing",
+    "typescript",
+    "node",
+    "api"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maumenvi/aape.git"
+  },
+  "homepage": "https://github.com/maumenvi/aape",
+  "bugs": {
+    "url": "https://github.com/maumenvi/aape/issues"
+  },
+  "scripts": {
+    "dev": "node src/index.ts",
+    "aape": "node src/cli/index.ts",
+    "build:publish": "node scripts/build-publish.mjs",
+    "example": "node examples/basic.ts",
+    "example:devtools": "node examples/devtools.ts",
+    "prepack": "npm run build:publish",
+    "test": "node --test",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2"
+  }
+}

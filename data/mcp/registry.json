@@ -1,0 +1,78 @@
+{
+  "items": [
+    {
+      "name": "filesystem",
+      "description": "Filesystem MCP; widely used for safe local file access and project operations.",
+      "source": "approved",
+      "path": "mcp/basic/filesystem.ts",
+      "version": "1.0.0",
+      "vscode": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+        "env": {}
+      }
+    },
+    {
+      "name": "git",
+      "description": "Git MCP for repository status, logs, patches, and commit-oriented workflows.",
+      "source": "approved",
+      "path": "mcp/basic/git.ts",
+      "version": "1.0.0",
+      "vscode": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-git"],
+        "env": {}
+      }
+    },
+    {
+      "name": "github",
+      "description": "GitHub MCP for pull requests, issues, and repository metadata access.",
+      "source": "approved",
+      "path": "mcp/basic/github.ts",
+      "version": "1.0.0",
+      "vscode": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"],
+        "env": {
+          "GITHUB_TOKEN": "${env:GITHUB_TOKEN}"
+        }
+      }
+    },
+    {
+      "name": "sqlite",
+      "description": "SQLite MCP for local structured data access and query execution.",
+      "source": "approved",
+      "path": "mcp/basic/sqlite.ts",
+      "version": "1.0.0",
+      "vscode": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sqlite"],
+        "env": {}
+      }
+    },
+    {
+      "name": "postgres",
+      "description": "PostgreSQL MCP for relational database access in production-ready agent workflows.",
+      "source": "approved",
+      "path": "mcp/basic/postgres.ts",
+      "version": "1.0.0",
+      "vscode": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-postgres"],
+        "env": {}
+      }
+    },
+    {
+      "name": "default-mcp",
+      "description": "Default local bootstrap MCP; keeps the runtime ready when no external server is configured.",
+      "source": "basic",
+      "path": "mcp/basic/default.ts",
+      "version": "1.0.0",
+      "vscode": {
+        "command": "node",
+        "args": ["data/mcp/basic/default.ts"],
+        "env": {}
+      }
+    }
+  ]
+}

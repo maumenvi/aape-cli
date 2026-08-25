@@ -1,0 +1,8 @@
+doc/
+examples/
+tests/
+.github/
+.gitignore
+.vscode/
+*.log
+coverage/

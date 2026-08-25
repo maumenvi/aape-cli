@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "name": "read_file",
+      "description": "Reads file content from disk; a core local tool used across agent runtimes.",
+      "source": "basic",
+      "path": "data/tools/imports/read-file.ts"
+    },
+    {
+      "name": "write_file",
+      "description": "Writes content to a target file; standard local file update tool.",
+      "source": "basic",
+      "path": "data/tools/imports/write-file.ts"
+    },
+    {
+      "name": "fetch_url",
+      "description": "Fetches remote HTTP content for analysis; a standard web-access tool.",
+      "source": "basic",
+      "path": "data/tools/imports/fetch-url.ts"
+    },
+    {
+      "name": "list_directory",
+      "description": "Lists directories and basic metadata in a filesystem-safe way.",
+      "source": "basic",
+      "path": "data/tools/imports/list-directory.ts"
+    },
+    {
+      "name": "execute_command",
+      "description": "Runs a shell command in a controlled environment when explicitly requested.",
+      "source": "basic",
+      "path": "data/tools/imports/execute-command.ts"
+    }
+  ]
+}
