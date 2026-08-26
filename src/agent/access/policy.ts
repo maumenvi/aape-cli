@@ -1,5 +1,3 @@
-import type { LlmAccessPolicy } from '../llm/provider.ts';
-
 export const ACCESS_ALL = '*';
 export const ACCESS_DEFAULT_ALLOW = 'allow';
 export const ACCESS_DEFAULT_DENY = 'deny';
@@ -7,6 +5,11 @@ export const ACCESS_DEFAULT_DENY = 'deny';
 export type AccessResourceKind = 'tool' | 'skill' | 'mcp';
 export type AccessList = string[];
 export type AccessDefaultPolicy = typeof ACCESS_DEFAULT_ALLOW | typeof ACCESS_DEFAULT_DENY;
+export interface LlmAccessPolicy {
+  tools?: string[];
+  skills?: string[];
+  mcps?: string[];
+}
 
 type PolicyKey = 'tools' | 'skills' | 'mcps';
 

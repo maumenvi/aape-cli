@@ -6,7 +6,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { McpManager } from '../../src/agent/mcp/manager/index.ts';
-import type { ToolConfig } from '../../src/agent/tools/types.ts';
 import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
 
 describe('McpManager', () => {
@@ -51,32 +50,10 @@ describe('McpManager', () => {
       const tools = manager.list();
       assert.ok(Array.isArray(tools));
     });
-
-    it('add method exists for future implementation', () => {
-      const toolConfig: ToolConfig = {
-        id: 'test-tool',
-        name: 'test_tool',
-        description: 'Test tool',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-        },
-      };
-
-      // This test verifies the interface, actual implementation is scaffolded
-      assert.ok(typeof manager.add === 'function');
-    });
-
-    it('discover method signature is correct', async () => {
-      // Verify method exists and is async
-      const result = manager.discover('test-repository');
-      assert.ok(result instanceof Promise);
-    });
   });
 
   describe('tool discovery', () => {
     it('discover returns array', async () => {
-      // Currently scaffolded, will return empty array
       const tools = await manager.discover('default');
       assert.ok(Array.isArray(tools));
     });
@@ -92,12 +69,6 @@ describe('McpManager', () => {
   });
 
   describe('lifecycle management', () => {
-    it('has lifecycle methods placeholder', () => {
-      // Verify manager can be used in lifecycle
-      assert.ok(typeof manager.list === 'function');
-      assert.ok(typeof manager.discover === 'function');
-    });
-
     it('starts MCP server, lists tools and calls tool', async () => {
       await manager.installWithVscode('mock', {
         version: '*',

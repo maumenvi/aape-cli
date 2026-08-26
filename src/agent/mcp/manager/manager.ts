@@ -3,13 +3,16 @@ import { AgentCatalogStore, type McpDependency } from '../../catalog/store.ts';
 import type { McpCallToolResult, McpSession, McpToolDescriptor } from '../runtime/index.ts';
 import type { McpHealthcheckResult, McpOperationOptions, McpReliabilityConfig } from '../reliability/index.ts';
 import type { MCPConfig } from '../../tools/types.ts';
-import type { LlmManager } from '../../llm/manager.ts';
-import { canLlmAccessResource, resolveAllowedLlms } from '../../access/policy.ts';
+import { canLlmAccessResource, resolveAllowedLlms, type LlmAccessPolicy } from '../../access/policy.ts';
 import { DEFAULT_RELIABILITY_CONFIG } from './defaults.ts';
 import { describeManager } from './describe.ts';
 import { McpResilienceController, toErrorMessage } from './resilience.ts';
 import { ensureHealthySession, getOrStartSession, invalidateSession, stopSession } from './session.ts';
 import { syncVsCodeMcpConfig } from '../../catalog/context/index.ts';
+
+interface LlmAccessPolicyProvider {
+  getAccessPolicy(id: string): Required<LlmAccessPolicy>;
+}
 
 export class AgentMcpManager {
   private readonly repositories: Repository[] = [];
@@ -17,16 +20,16 @@ export class AgentMcpManager {
   private readonly sessions = new Map<string, McpSession>();
   private readonly reliability: McpReliabilityConfig;
   private readonly resilience: McpResilienceController;
-  private readonly llmManager?: LlmManager;
+  private readonly llmAccessPolicies?: LlmAccessPolicyProvider;
 
-  constructor(catalog = new AgentCatalogStore(), reliability: Partial<McpReliabilityConfig> = {}, llmManager?: LlmManager) {
+  constructor(catalog = new AgentCatalogStore(), reliability: Partial<McpReliabilityConfig> = {}, llmAccessPolicies?: LlmAccessPolicyProvider) {
     this.catalog = catalog;
     this.reliability = {
       ...DEFAULT_RELIABILITY_CONFIG,
       ...reliability,
     };
     this.resilience = new McpResilienceController(this.reliability);
-    this.llmManager = llmManager;
+    this.llmAccessPolicies = llmAccessPolicies;
   }
 
   add(repo: Repository): AgentMcpManager {
@@ -237,7 +240,7 @@ export class AgentMcpManager {
 
   private isLlmAllowed(llmId: string | undefined, serverName: string, allowedLlms?: string[]): boolean {
     if (!llmId) return true;
-    const llmPolicy = this.llmManager?.getAccessPolicy(llmId);
+    const llmPolicy = this.llmAccessPolicies?.getAccessPolicy(llmId);
     return canLlmAccessResource(
       llmId,
       'mcp',
@@ -262,15 +265,15 @@ export class McpManager extends AgentMcpManager {}
 export function createAgentMcpManager(
   catalog?: AgentCatalogStore,
   reliability?: Partial<McpReliabilityConfig>,
-  llmManager?: LlmManager,
+  llmAccessPolicies?: LlmAccessPolicyProvider,
 ): AgentMcpManager {
-  return new AgentMcpManager(catalog, reliability, llmManager);
+  return new AgentMcpManager(catalog, reliability, llmAccessPolicies);
 }
 
 export function createMcpManager(
   catalog?: AgentCatalogStore,
   reliability?: Partial<McpReliabilityConfig>,
-  llmManager?: LlmManager,
+  llmAccessPolicies?: LlmAccessPolicyProvider,
 ): McpManager {
-  return new McpManager(catalog, reliability, llmManager);
+  return new McpManager(catalog, reliability, llmAccessPolicies);
 }

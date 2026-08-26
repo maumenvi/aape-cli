@@ -25,59 +25,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install devtools dependencies
-        run: npm ci --prefix packages/aape-devtools
-
       - name: Typecheck
         run: npm run typecheck
 
       - name: Run tests
         run: npm test
 
-      - name: Package core (@maumenvi/aape)
+      - name: Package CLI
         run: npm pack
 
-      - name: Package devtools (@maumenvi/aape-devtools)
-        run: npm pack --prefix packages/aape-devtools
-
-      - name: Create test directory for core smoke test
-        run: mkdir -p /tmp/test-core && cd /tmp/test-core && npm init -y
-
-      - name: Install core tarball in test directory
+      - name: Resolve tarball name
         run: |
-          cd /tmp/test-core
-          npm install ${{ github.workspace }}/maumenvi-aape-1.4.0.tgz
+          echo "TARBALL=$(node --print 'const pkg = require("./package.json"); pkg.name.replace("@", "").replace("/", "-") + "-" + pkg.version + ".tgz"')" >> "$GITHUB_ENV"
 
-      - name: Smoke test: core import and basic functionality
+      - name: Create test directory for CLI smoke test
+        run: mkdir -p /tmp/test-cli && cd /tmp/test-cli && npm init -y
+
+      - name: Install CLI tarball in test directory
         run: |
-          cd /tmp/test-core
-          node -e "
-          const { createPipeline, createLlmManager } = require('./node_modules/@maumenvi/aape');
-          const pipeline = createPipeline();
-          console.log('✓ Core pipeline created successfully');
-          const llm = createLlmManager();
-          console.log('✓ Core LLM manager created successfully');
-          "
+          cd /tmp/test-cli
+          npm install "${{ github.workspace }}/${TARBALL}"
 
-      - name: Create test directory for devtools smoke test
-        run: mkdir -p /tmp/test-devtools && cd /tmp/test-devtools && npm init -y
-
-      - name: Install core and devtools tarballs in test directory
+      - name: "Smoke test: CLI entrypoint"
         run: |
-          cd /tmp/test-devtools
-          npm install ${{ github.workspace }}/maumenvi-aape-1.4.0.tgz
-          npm install ${{ github.workspace }}/maumenvi-aape-devtools-1.4.0.tgz
-
-      - name: Smoke test: devtools integration with core
-        run: |
-          cd /tmp/test-devtools
-          node -e "
-          const core = require('./node_modules/@maumenvi/aape');
-          const devtools = require('./node_modules/@maumenvi/aape-devtools');
-          console.log('✓ Core loaded');
-          console.log('✓ DevTools loaded');
-          console.log('✓ Integration smoke test passed');
-          "
+          cd /tmp/test-cli
+          ./node_modules/.bin/aape help
 
       - name: Validate package
         run: npm pack --dry-run

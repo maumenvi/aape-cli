@@ -1,24 +1,19 @@
 {
   "name": "@maumenvi/aape-cli",
-  "version": "1.5.1",
-  "description": "CLI para catalogo e instalacao de skills, MCPs e tools para agentes",
+  "version": "1.5.3",
+  "description": "CLI for cataloging and installing skills, MCPs, and tools for AI agents",
   "license": "MIT",
   "type": "module",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
   "bin": {
     "aape": "dist/src/cli/index.js"
   },
   "exports": {
-    ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js"
-    },
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "README.md",
+    "README.pt-BR.md",
     "LICENSE"
   ],
   "keywords": [
@@ -39,13 +34,11 @@
     "url": "https://github.com/maumenvi/aape-cli/issues"
   },
   "scripts": {
-    "dev": "node src/index.ts",
+    "dev": "node src/cli/index.ts",
     "aape": "node src/cli/index.ts",
     "build:publish": "node scripts/build-publish.mjs",
-    "example": "node examples/basic.ts",
-    "example:devtools": "node examples/devtools.ts",
     "prepack": "npm run build:publish",
-    "test": "node --test",
+    "test": "node scripts/run-tests.mjs",
     "typecheck": "tsc --noEmit"
   },
   "engines": {

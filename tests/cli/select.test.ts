@@ -1,9 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { CatalogSearchResult } from '../../src/agent/catalog/providers/index.ts';
+import type { MCPConfig } from '../../src/agent/tools/types.ts';
 import { extractCredentialEnvHints } from '../../src/cli/shared/select.ts';
 
-function mcpResult(vscode: CatalogSearchResult['install'] & { type: 'mcp' }['vscode']): CatalogSearchResult {
+function mcpResult(vscode: MCPConfig): CatalogSearchResult {
   return {
     id: 'example/mcp',
     kind: 'mcp',

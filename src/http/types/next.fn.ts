@@ -1,1 +1,0 @@
-export type NextFn = (err?: unknown) => void;
