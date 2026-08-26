@@ -7,6 +7,16 @@
     "strictVerify": true,
     "llmAccessDefault": "allow"
   },
+  "registries": {
+    "skills": {
+      "provider": "skills.sh",
+      "url": "https://skills.sh"
+    },
+    "mcp": {
+      "provider": "mcp",
+      "url": "https://registry.modelcontextprotocol.io"
+    }
+  },
   "sources": {
     "local": {
       "type": "git",

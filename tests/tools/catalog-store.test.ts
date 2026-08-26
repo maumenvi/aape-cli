@@ -71,8 +71,15 @@ describe('AgentCatalogStore', () => {
 
       const syncResult = store.syncVsCodeMcp();
       assert.ok(existsSync(syncResult.file));
-      const content = readFileSync(syncResult.file, 'utf8');
-      assert.ok(content.includes('"mcpServers"'));
+      const content = JSON.parse(readFileSync(syncResult.file, 'utf8')) as {
+        servers: Record<string, Record<string, unknown>>;
+      };
+      assert.ok(content.servers.filesystem);
+      assert.equal(content.servers.filesystem.command, 'npx');
+      assert.deepEqual(content.servers.filesystem.args, ['-y', '@modelcontextprotocol/server-filesystem']);
+      assert.equal(Object.prototype.hasOwnProperty.call(content.servers.filesystem, 'transport'), false);
+      assert.equal(Object.prototype.hasOwnProperty.call(content.servers.filesystem, 'package'), false);
+      assert.equal(Object.prototype.hasOwnProperty.call(content.servers.filesystem, 'npxArgs'), false);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }

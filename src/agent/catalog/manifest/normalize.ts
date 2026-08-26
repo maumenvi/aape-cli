@@ -8,6 +8,10 @@ export const normalizeManifest = (parsed: Partial<SourcesManifest>): SourcesMani
     ...createDefaultManifest().config,
     ...(parsed.config ?? {}),
   },
+  registries: {
+    ...createDefaultManifest().registries,
+    ...(parsed.registries ?? {}),
+  },
   sources: { ...(parsed.sources ?? {}) },
   skills: { ...(parsed.skills ?? {}) },
   mcps: { ...(parsed.mcps ?? {}) },

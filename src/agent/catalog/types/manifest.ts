@@ -1,6 +1,11 @@
 import type { CatalogSource } from './source.ts';
 import type { McpDependency, SkillDependency, ToolDependency } from './dependencies.ts';
 
+export interface CatalogRegistryConfig {
+  provider: 'skills.sh' | 'mcp';
+  url: string;
+}
+
 export interface SourcesManifest {
   name: string;
   version: string;
@@ -10,6 +15,7 @@ export interface SourcesManifest {
     strictVerify: boolean;
     llmAccessDefault: 'allow' | 'deny';
   };
+  registries: Record<string, CatalogRegistryConfig>;
   sources: Record<string, CatalogSource>;
   skills: Record<string, SkillDependency>;
   mcps: Record<string, McpDependency>;

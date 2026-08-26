@@ -1,107 +1,95 @@
-import type { McpDependency } from '../../agent/catalog/store.ts';
+import { searchCatalog } from '../../agent/catalog/providers/index.ts';
+import { findRegistryEntry } from '../../agent/catalog/registry/index.ts';
+import { bestCatalogMatch, installCatalogResult } from '../install/external.ts';
+import { createMcpConfig, installMcp } from '../install/mcp.ts';
+import { installSkill } from '../install/skill.ts';
 import { parseFlags } from '../shared/flags.ts';
 import { normalizeKind } from '../shared/kind.ts';
+import { reinstallFromLock } from '../shared/workspace.ts';
 import type { CommandHandler } from '../types.ts';
+import { ensureInitialized } from './init.ts';
 
-const toStringMap = (input: unknown): Record<string, string> => {
-  if (!input || typeof input !== 'object') {
-    return {};
+function resolveAllowedLlms(flags: Record<string, string>): string[] {
+  if (flags.allLlms === 'true' || flags['all-llms'] === 'true') {
+    return ['*'];
   }
-  return Object.fromEntries(
-    Object.entries(input as Record<string, unknown>).map(([key, value]) => [key, String(value)]),
-  );
-};
+  const configured = flags.llms?.split(',').map((item) => item.trim()).filter(Boolean) ?? [];
+  return configured.length > 0 ? configured : ['*'];
+}
+
+function hasManualMcpConfig(flags: Record<string, string>): boolean {
+  return ['transport', 'command', 'args', 'env', 'headers', 'npxArgs', 'package', 'url']
+    .some((name) => typeof flags[name] !== 'undefined');
+}
 
 export const installCommand: CommandHandler = async (args, { store }) => {
+  ensureInitialized(store);
   const { positional, flags } = parseFlags(args);
+
+  if (positional.length === 0) {
+    const lock = store.buildLock();
+    const result = await reinstallFromLock(store, lock);
+    console.log(`Bootstrapped source.lock with ${Object.keys(lock.packages).length} locked entries`);
+    console.log(`Installed ${result.skills.length} skills and synced MCP config`);
+    return;
+  }
+
   const kind = normalizeKind(positional[0] ?? '');
   const name = positional[1];
   if (!name) {
-    throw new Error(`Usage: aape i ${kind} <name> [--version <range>] [--source <alias>] [--llms <id1,id2>] [--all-llms]`);
+    throw new Error(`Usage: aape i ${kind} <name> [--version <range>] [--source <alias>]`);
   }
 
   const version = flags.version ?? '*';
-  const source = flags.source ?? 'local';
-  const parsedAllowedLlms = typeof flags.llms === 'string'
-    ? flags.llms.split(',').map((item) => item.trim()).filter((item) => item.length > 0)
-    : [];
-  const allowedLlms = flags.allLlms === 'true' || flags['all-llms'] === 'true'
-    ? ['*']
-    : parsedAllowedLlms.length > 0
-      ? parsedAllowedLlms
-      : ['*'];
+  const allowedLlms = resolveAllowedLlms(flags);
+  const explicitSource = flags.source;
 
-  if (kind === 'mcp') {
-    const parsedArgs = flags.args ? JSON.parse(flags.args) : [];
-    const parsedEnv = flags.env ? JSON.parse(flags.env) : {};
-    const parsedHeaders = flags.headers ? JSON.parse(flags.headers) : {};
-    const parsedNpxArgs = flags.npxArgs ? JSON.parse(flags.npxArgs) : ['-y'];
-    const transport = String(flags.transport ?? 'stdio');
-    const vscode = transport === 'http'
-      ? {
-          transport: 'http' as const,
-          url: String(flags.url ?? ''),
-          headers: toStringMap(parsedHeaders),
-        }
-      : transport === 'ws'
-        ? {
-            transport: 'ws' as const,
-            url: String(flags.url ?? ''),
-            headers: toStringMap(parsedHeaders),
-          }
-      : transport === 'sse'
-        ? {
-            transport: 'sse' as const,
-            url: String(flags.url ?? ''),
-            headers: toStringMap(parsedHeaders),
-          }
-      : transport === 'npx'
-        ? {
-            transport: 'npx' as const,
-            package: String(flags.package ?? `@modelcontextprotocol/server-${name}`),
-            args: Array.isArray(parsedArgs) ? parsedArgs.map((value) => String(value)) : [],
-            env: toStringMap(parsedEnv),
-            npxArgs: Array.isArray(parsedNpxArgs) ? parsedNpxArgs.map((value) => String(value)) : ['-y'],
-          }
-      : {
-          transport: 'stdio' as const,
-          command: flags.command ?? 'npx',
-          args: Array.isArray(parsedArgs) ? parsedArgs.map((value) => String(value)) : [],
-          env: toStringMap(parsedEnv),
-        };
-    if (vscode.transport === 'http' && !vscode.url) {
-      throw new Error('Usage for HTTP MCP: aape i mcp <name> --transport http --url <endpoint> [--headers \'{...}\']');
+  if (kind === 'skill') {
+    const isLocal = Boolean(findRegistryEntry('skill', name));
+    if (!explicitSource && !isLocal) {
+      const results = await searchCatalog(store.loadManifest(), 'skill', name, 10);
+      const match = bestCatalogMatch(results, name);
+      if (!match) {
+        throw new Error(`Skill "${name}" was not found in configured catalogs`);
+      }
+      await installCatalogResult(store, match, allowedLlms);
+    } else {
+      await installSkill(store, {
+        name,
+        source: explicitSource ?? 'local',
+        version,
+        allowedLlms,
+      });
     }
-    if (vscode.transport === 'ws' && !vscode.url) {
-      throw new Error('Usage for WebSocket MCP: aape i mcp <name> --transport ws --url <endpoint> [--headers \'{...}\']');
+  } else if (kind === 'mcp') {
+    if (!explicitSource && !hasManualMcpConfig(flags)) {
+      const results = await searchCatalog(store.loadManifest(), 'mcp', name, 10);
+      const match = bestCatalogMatch(results, name);
+      if (!match) {
+        throw new Error(`MCP "${name}" was not found in configured catalogs`);
+      }
+      await installCatalogResult(store, match, allowedLlms);
+    } else {
+      installMcp(
+        store,
+        name,
+        explicitSource ?? 'local',
+        version,
+        allowedLlms,
+        createMcpConfig(name, flags),
+      );
     }
-    if (vscode.transport === 'sse' && !vscode.url) {
-      throw new Error('Usage for SSE MCP: aape i mcp <name> --transport sse --url <endpoint> [--headers \'{...}\']');
-    }
-    if (vscode.transport === 'npx' && !vscode.package) {
-      throw new Error('Usage for NPX MCP: aape i mcp <name> --transport npx [--package <npm-package>] [--args \'[...]\']');
-    }
-    const dependency: McpDependency = {
-      version,
-      source,
-      enabled: true,
-      capabilities: [],
-      constraints: [],
-      allowedLlms,
-      vscode,
-    };
-    store.addDependency(kind, name, dependency);
   } else {
     store.addDependency(kind, name, {
       version,
-      source,
+      source: explicitSource ?? 'local',
       enabled: true,
       capabilities: [],
       constraints: [],
       allowedLlms,
     });
+    store.buildLock();
   }
 
-  store.buildLock();
   console.log(`Installed ${kind}:${name}`);
 };

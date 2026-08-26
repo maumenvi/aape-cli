@@ -6,12 +6,13 @@ import type { CliContext } from './types.ts';
 
 const command = process.argv[2] ?? 'help';
 const args = process.argv.slice(3);
+const effectiveCommand = command === '--version' || command === '-v' ? 'version' : command;
 
 const context: CliContext = {
   store: new AgentCatalogStore({ cwd: process.cwd() }),
 };
 
-const handler = commandHandlers[command] ?? helpCommand;
+const handler = commandHandlers[effectiveCommand] ?? helpCommand;
 
 handler(args, context).catch((error) => {
   const message = error instanceof Error ? error.message : String(error);

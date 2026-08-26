@@ -1,0 +1,17 @@
+# Repositórios de descoberta padrão
+# Esses endpoints são consultados quando o registry local não encontrar uma skill, tool ou MCP.
+SKILLS_REPOSITORIES=https://www.skills.sh/
+MCP_REPOSITORIES=https://mcpservers.org/pt-BR/
+
+# PostgreSQL (usar em local ou em provedor como Neon/Supabase)
+DATABASE_URL=postgresql://neondb_owner:npg_bmc9JS5KquAn@ep-billowing-smoke-ay3ya1ng-pooler.c-5.us-east-2.aws.neon.tech/aape?sslmode=require&channel_binding=require
+PGHOST=ep-billowing-smoke-ay3ya1ng-pooler.c-5.us-east-2.aws.neon.tech
+PGPORT=5432
+PGUSER=neondb_owner
+PGPASSWORD=npg_bmc9JS5KquAn
+PGDATABASE=aape
+PGSSLMODE=require
+PGCHANNELBINDING=require
+
+# Ambiente geral
+NODE_ENV=development

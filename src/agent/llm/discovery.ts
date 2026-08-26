@@ -1,5 +1,3 @@
-import { config } from '../../config/index.ts';
-
 export interface LlmDiscoveryEntry {
   name: string;
   provider: string;
@@ -10,7 +8,7 @@ export interface LlmDiscoveryEntry {
 export class AgentLlmDiscovery {
   private readonly repositories: string[];
 
-  constructor(repositories: string[] = config.repositories.mcp) {
+  constructor(repositories: string[] = []) {
     this.repositories = repositories;
   }
 
@@ -45,6 +43,6 @@ export class AgentLlmDiscovery {
   }
 }
 
-export function createAgentLlmDiscovery(repositories: string[] = config.repositories.mcp): AgentLlmDiscovery {
+export function createAgentLlmDiscovery(repositories: string[] = []): AgentLlmDiscovery {
   return new AgentLlmDiscovery(repositories);
 }

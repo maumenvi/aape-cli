@@ -1,11 +1,9 @@
 #!/usr/bin/env node
-let buffer = Buffer.alloc(0);
+let buffer = '';
 let callCount = 0;
 
 const write = (payload) => {
-  const body = Buffer.from(JSON.stringify(payload), 'utf8');
-  const header = Buffer.from(`Content-Length: ${body.byteLength}\r\n\r\n`, 'utf8');
-  process.stdout.write(Buffer.concat([header, body]));
+  process.stdout.write(`${JSON.stringify(payload)}\n`);
 };
 
 const onMessage = (message) => {
@@ -68,23 +66,15 @@ const onMessage = (message) => {
 };
 
 const parse = () => {
-  while (true) {
-    const headerEnd = buffer.indexOf('\r\n\r\n');
-    if (headerEnd < 0) return;
-    const header = buffer.subarray(0, headerEnd).toString('utf8');
-    const match = header.match(/Content-Length:\s*(\d+)/i);
-    if (!match) return;
-    const contentLength = Number.parseInt(match[1], 10);
-    const bodyStart = headerEnd + 4;
-    const bodyEnd = bodyStart + contentLength;
-    if (buffer.byteLength < bodyEnd) return;
-    const message = JSON.parse(buffer.subarray(bodyStart, bodyEnd).toString('utf8'));
-    buffer = buffer.subarray(bodyEnd);
-    onMessage(message);
+  while (buffer.includes('\n')) {
+    const lineEnd = buffer.indexOf('\n');
+    const line = buffer.slice(0, lineEnd).trim();
+    buffer = buffer.slice(lineEnd + 1);
+    if (line) onMessage(JSON.parse(line));
   }
 };
 
 process.stdin.on('data', (chunk) => {
-  buffer = Buffer.concat([buffer, chunk]);
+  buffer += chunk.toString('utf8');
   parse();
 });

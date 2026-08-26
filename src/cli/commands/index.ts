@@ -8,6 +8,8 @@ import { lockCommand } from './lock.ts';
 import { mcpCommand } from './mcp.ts';
 import { removeCommand } from './remove.ts';
 import { sourceCommand } from './source.ts';
+import { skillsCommand } from './skills.ts';
+import { versionCommand } from './version.ts';
 import { verifyCommand } from './verify.ts';
 import type { CommandHandler } from '../types.ts';
 
@@ -25,5 +27,9 @@ export const commandHandlers: Record<string, CommandHandler> = {
   context: contextCommand,
   mcp: mcpCommand,
   source: sourceCommand,
+  skills: skillsCommand,
+  version: versionCommand,
+  '--version': versionCommand,
+  '-v': versionCommand,
   help: helpCommand,
 };

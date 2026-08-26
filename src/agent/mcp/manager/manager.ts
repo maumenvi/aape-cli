@@ -9,6 +9,7 @@ import { DEFAULT_RELIABILITY_CONFIG } from './defaults.ts';
 import { describeManager } from './describe.ts';
 import { McpResilienceController, toErrorMessage } from './resilience.ts';
 import { ensureHealthySession, getOrStartSession, invalidateSession, stopSession } from './session.ts';
+import { syncVsCodeMcpConfig } from '../../catalog/context/index.ts';
 
 export class AgentMcpManager {
   private readonly repositories: Repository[] = [];
@@ -106,7 +107,7 @@ export class AgentMcpManager {
     return this;
   }
 
-  async syncVsCodeConfig(): Promise<{ file: string; servers: Record<string, MCPConfig> }> {
+  async syncVsCodeConfig(): Promise<ReturnType<typeof syncVsCodeMcpConfig>> {
     return this.catalog.syncVsCodeMcp();
   }
 

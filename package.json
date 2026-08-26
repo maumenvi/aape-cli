@@ -1,6 +1,6 @@
 {
   "name": "@maumenvi/aape",
-  "version": "1.4.0",
+  "version": "1.4.6",
   "description": "HTTP framework with autonomous agent pipeline engine",
   "license": "MIT",
   "type": "module",

@@ -1,0 +1,56 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
+import { installCommand } from '../../src/cli/commands/install.ts';
+
+const FIND_SKILLS_MARKDOWN = `---
+name: find-skills
+description: Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill.
+---
+
+# Find Skills
+
+This skill helps you discover and install skills from the open agent skills ecosystem.
+`;
+
+describe('Remote skill install', () => {
+  it('downloads a skill from an explicitly configured GitHub source', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-remote-skill-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      store.addSource('skillsHub', {
+        type: 'git',
+        url: 'https://github.com/vercel-labs/skills',
+        ref: 'main',
+        trusted: true,
+      });
+
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        assert.equal(url, 'https://raw.githubusercontent.com/vercel-labs/skills/main/skills/find-skills/SKILL.md');
+        return new Response(FIND_SKILLS_MARKDOWN, { status: 200, headers: { 'content-type': 'text/plain' } });
+      };
+
+      await installCommand(['skill', 'find-skills', '--source', 'skillsHub'], { store });
+
+      const lock = store.loadLock();
+      assert.ok(lock);
+      const pkg = lock?.packages['skill:find-skills'];
+      assert.ok(pkg);
+      assert.equal(pkg?.source, 'skillsHub');
+      assert.equal(pkg?.path, 'skills/find-skills/SKILL.md');
+
+      const installedPath = path.resolve(tempDir, pkg?.path ?? '');
+      assert.ok(existsSync(installedPath));
+      assert.ok(readFileSync(installedPath, 'utf8').includes('# Find Skills'));
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+});

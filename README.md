@@ -35,6 +35,28 @@ O fluxo comum é:
 
 - Node.js >= 26
 
+O CLI não possui dependências de runtime. Rede, arquivos, hashing e processos usam apenas APIs nativas do Node.js.
+
+## Catálogos externos
+
+A busca não depende de uma base local:
+
+- skills são pesquisadas no [skills.sh](https://skills.sh/) e resolvidas para um commit exato do GitHub ou um endpoint `well-known`
+- servidores MCP são pesquisados no [MCP Registry oficial](https://registry.modelcontextprotocol.io/)
+- `sources` registra os provedores e as dependências desejadas
+- `source.lock` fixa commit, versão, pacote, transporte e integridade para reinstalações reproduzíveis
+
+Os endpoints podem ser trocados no arquivo `sources` ou pelas variáveis `SKILLS_REGISTRY_URL` e `MCP_REGISTRY_URL`. `GITHUB_TOKEN` é opcional e aumenta o limite de consultas ao resolver skills do GitHub.
+
+```json
+{
+  "registries": {
+    "skills": { "provider": "skills.sh", "url": "https://skills.sh" },
+    "mcp": { "provider": "mcp", "url": "https://registry.modelcontextprotocol.io" }
+  }
+}
+```
+
 ## Instalação
 
 ```bash
@@ -45,27 +67,39 @@ npm install @maumenvi/aape
 
 ```bash
 aape init
+aape skills find react
+aape skills add vercel-labs/agent-skills@vercel-react-best-practices
+aape mcp find filesystem
+aape mcp add filesystem
 aape source add my-registry https://github.com/acme/aape-registry --ref main --trusted true
 aape source ls
 aape i skill repo_overview --version ^1.0.0 --source my-registry
 aape lock
 aape verify
-aape ci
+aape ci # reinstala do source.lock e sincroniza o VS Code
 ```
 
 ## Catálogo de MCP/Skills/Tools
 
-O CLI usa um catálogo local transparente:
+O CLI combina descoberta externa com estado local transparente:
 
-- `sources`: manifesto editável do projeto
+- `sources`: manifesto editável com registries, sources e dependências
 - `source.lock`: resolução fixa e verificável
 - `.aape/context.dev.json`: contexto completo para desenvolvimento
 - `.aape/context.llm.json`: contexto enxuto para LLM
-- `.vscode/mcp.json`: sincronizado a partir do lock para MCP no formato nativo do VS Code
+- `.vscode/mcp.json`: sincronizado a partir do lock para MCP no formato nativo do VS Code (`servers`)
+
+Ao instalar uma skill, o CLI também materializa `skills/<nome>/SKILL.md` no workspace.
+Ao instalar um MCP, o CLI sincroniza automaticamente o `.vscode/mcp.json`.
 
 ### Instalação de recursos
 
 ```bash
+aape skills find react
+aape skills add vercel-labs/agent-skills@vercel-react-best-practices
+aape mcp find filesystem
+aape mcp add filesystem
+aape i mcp filesystem # também pesquisa no registry quando não há flags manuais
 aape i skill repo_overview
 aape i skill repo_overview --llms "model-x,model-y"
 aape i skill repo_overview --all-llms

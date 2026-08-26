@@ -33,6 +33,17 @@ export type { PipelineEvent, PipelineEventHandler, PipelineEventType } from './p
 export { config, getConfig, resolveDefaultLlmProvider, getRequiredEnv } from './config/index.ts';
 export * from './agent/index.ts';
 export { AgentCatalogStore, createAgentCatalogStore } from './agent/catalog/store.ts';
+export {
+  createCatalogProviders,
+  findCatalogProvider,
+  searchCatalog,
+} from './agent/catalog/providers/index.ts';
+export type {
+  CatalogInstall,
+  CatalogProvider,
+  CatalogSearchResult,
+  ResolvedCatalogEntry,
+} from './agent/catalog/providers/index.ts';
 
 export { createLlmManager } from './agent/llm/manager.ts';
 export type { LlmManager } from './agent/llm/manager.ts';

@@ -25,10 +25,9 @@ export interface AppConfig {
     anthropicApiKey: string;
     providerOrder: Array<'openrouter' | 'ollama' | 'openai' | 'anthropic' | 'custom'>;
   };
-  repositories: {
-    skills: string[];
-    tools: string[];
-    mcp: string[];
+  catalog: {
+    skillsRegistryUrl: string;
+    mcpRegistryUrl: string;
   };
   paths: {
     rootDir: string;
@@ -52,10 +51,9 @@ export const config: AppConfig = {
     anthropicApiKey: anthropicKey,
     providerOrder: ['openrouter', 'ollama', 'openai', 'anthropic', 'custom'],
   },
-  repositories: {
-    skills: ['https://www.skills.sh/'],
-    tools: ['https://mcpservers.org/pt-BR/'],
-    mcp: ['https://mcpservers.org/pt-BR/'],
+  catalog: {
+    skillsRegistryUrl: getEnv('SKILLS_REGISTRY_URL', 'https://skills.sh'),
+    mcpRegistryUrl: getEnv('MCP_REGISTRY_URL', 'https://registry.modelcontextprotocol.io'),
   },
   paths: {
     rootDir,

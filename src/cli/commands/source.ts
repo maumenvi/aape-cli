@@ -23,7 +23,10 @@ export const sourceCommand: CommandHandler = async (args, { store }) => {
 
   if (action === 'ls') {
     const manifest = store.loadManifest();
-    console.log(JSON.stringify(manifest.sources, null, 2));
+    console.log(JSON.stringify({
+      registries: manifest.registries,
+      sources: manifest.sources,
+    }, null, 2));
     return;
   }
 

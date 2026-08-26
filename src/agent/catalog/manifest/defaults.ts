@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { config } from '../../../config/index.ts';
 import type { SourcesManifest } from '../types/index.ts';
 
 export const createDefaultManifest = (): SourcesManifest => ({
@@ -9,6 +10,16 @@ export const createDefaultManifest = (): SourcesManifest => ({
     registryStrategy: 'hybrid',
     strictVerify: true,
     llmAccessDefault: 'allow',
+  },
+  registries: {
+    skills: {
+      provider: 'skills.sh',
+      url: config.catalog.skillsRegistryUrl,
+    },
+    mcp: {
+      provider: 'mcp',
+      url: config.catalog.mcpRegistryUrl,
+    },
   },
   sources: {
     local: {

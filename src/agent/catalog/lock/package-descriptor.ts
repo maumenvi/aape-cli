@@ -26,7 +26,7 @@ export function createPackageDescriptor(
     version,
     source: dependency.source,
     resolvedFrom: dependency.version,
-    path: registryEntry?.path ?? `${kind}s/${name}`,
+    path: dependency.path ?? registryEntry?.path ?? `${kind}s/${name}`,
     integrity: '',
     enabled: dependency.enabled ?? true,
     capabilities: [...(dependency.capabilities ?? registryEntry?.capabilities ?? [])],

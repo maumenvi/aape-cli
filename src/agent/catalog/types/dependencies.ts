@@ -3,6 +3,7 @@ import type { MCPConfig } from '../../tools/types.ts';
 export interface CatalogDependencyBase {
   version: string;
   source: string;
+  path?: string;
   enabled?: boolean;
   capabilities?: string[];
   constraints?: string[];
