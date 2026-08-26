@@ -5,15 +5,15 @@ function formatInstalls(value?: number): string {
   return value ? ` · ${value.toLocaleString('en-US')} installs` : '';
 }
 
-const ENV_PLACEHOLDER = /\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}/g;
+const ENV_PLACEHOLDER = /(\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}|\{([A-Za-z_][A-Za-z0-9_]*)\})/g;
 const CREDENTIAL_NAME = /(token|key|secret|password|auth|bearer)/i;
 
 function extractEnvNames(value: string): string[] {
   const names = new Set<string>();
   for (const match of value.matchAll(ENV_PLACEHOLDER)) {
-    const name = match[1]?.trim();
+    const name = match[2] ?? match[3];
     if (name) {
-      names.add(name);
+      names.add(name.trim());
     }
   }
   return Array.from(names);

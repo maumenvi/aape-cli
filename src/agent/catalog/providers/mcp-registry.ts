@@ -74,17 +74,37 @@ function credentialEnvName(serverName: string, inputName?: string): string {
   return toEnvVariableName(`${credentialEnvPrefix(serverName)}_${inputName ?? 'VALUE'}`);
 }
 
-function inputValue(serverName: string, input: RegistryInput): string {
-  if (input.value) {
-    return input.value;
+function normalizePlaceholderValue(value: string, serverName: string, inputName?: string): string {
+  if (!value) {
+    return value;
   }
-  if (input.default) {
-    return input.default;
+
+  const directPattern = /\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}/g;
+  if (directPattern.test(value)) {
+    return value;
+  }
+
+  const barePattern = /\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+  const credentialEnv = inputName && isCredentialInput({ name: inputName } as RegistryInput)
+    ? credentialEnvName(serverName, inputName)
+    : undefined;
+  const defaultEnvName = credentialEnv ?? toEnvVariableName(inputName ?? 'VALUE');
+
+  return value.replace(barePattern, (_, placeholder: string) => {
+    const name = credentialEnv ?? credentialEnvName(serverName, placeholder);
+    return '${env:' + (name || defaultEnvName) + '}';
+  });
+}
+
+function inputValue(serverName: string, input: RegistryInput): string {
+  const rawValue = input.value ?? input.default ?? '';
+  if (rawValue) {
+    return normalizePlaceholderValue(rawValue, serverName, input.name);
   }
   const envName = isCredentialInput(input)
     ? credentialEnvName(serverName, input.name)
     : toEnvVariableName(input.name ?? 'VALUE');
-  return `\${env:${envName}}`;
+  return '${env:' + envName + '}';
 }
 
 function inputMap(serverName: string, inputs: RegistryInput[] = []): Record<string, string> {

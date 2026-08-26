@@ -5,7 +5,7 @@ import type { CatalogSearchResult } from '../../agent/catalog/providers/index.ts
 import type { AgentCatalogStore } from '../../agent/catalog/store.ts';
 
 const CREDENTIAL_NAME = /(token|key|secret|password|auth|bearer)/i;
-const ENV_PLACEHOLDER = /\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}/g;
+const ENV_PLACEHOLDER = /(\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}|\{([A-Za-z_][A-Za-z0-9_]*)\})/g;
 
 interface CredentialRequirement {
   envName: string;
@@ -23,9 +23,9 @@ function mergeUnique(requirements: CredentialRequirement[]): CredentialRequireme
 function parseEnvNames(value: string): string[] {
   const names = new Set<string>();
   for (const match of value.matchAll(ENV_PLACEHOLDER)) {
-    const envName = match[1]?.trim();
+    const envName = match[2] ?? match[3];
     if (envName) {
-      names.add(envName);
+      names.add(envName.trim());
     }
   }
   return Array.from(names);

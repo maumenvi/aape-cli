@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { agentRegistry, findAgent, injectAgentConfig, resolveConfigPath } from '../../agent/agents/index.ts';
+import { parseSaveFlag } from './init.ts';
 import type { CommandHandler } from '../types.ts';
 
 function isProjectLocalConfig(configPath: string, cwd: string): boolean {
@@ -68,31 +69,41 @@ function configureAgents(agentIds: string[]): void {
   }
 }
 
-export const agentCommand: CommandHandler = async (args) => {
-  const action = args[0];
+export const agentCommand: CommandHandler = async (args, { store }) => {
+  const { save, remaining } = parseSaveFlag(args);
+  const action = remaining[0];
 
   if (action === 'agent') {
-    const agentIds = args.slice(1);
+    const agentIds = remaining.slice(1);
     if (agentIds.length === 0) {
       const ids = supportedAgentsMessage();
       throw new Error(`Usage: aape add agent <name...>\nSupported agents: ${ids}`);
     }
     configureAgents(agentIds);
+    if (save) {
+      store.saveSelectedAgents(agentIds);
+    }
     return;
   }
 
   if (action === 'add') {
-    const agentIds = args.slice(1);
+    const agentIds = remaining.slice(1);
     if (agentIds.length === 0) {
       const ids = supportedAgentsMessage();
       throw new Error(`Usage: aape agent add <name...>\nSupported agents: ${ids}`);
     }
     configureAgents(agentIds);
+    if (save) {
+      store.saveSelectedAgents(agentIds);
+    }
     return;
   }
 
   if (action && action !== 'ls' && action !== 'list') {
-    configureAgents(args);
+    configureAgents(remaining);
+    if (save) {
+      store.saveSelectedAgents(remaining);
+    }
     return;
   }
 

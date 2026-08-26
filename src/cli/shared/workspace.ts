@@ -9,6 +9,23 @@ import { fetchRemoteSkillMarkdown } from './remote-skill.ts';
 
 export { fetchRemoteSkillMarkdown } from './remote-skill.ts';
 
+function assertWorkspaceRelativePath(workspaceRoot: string, targetRelativePath: string, label: string): string {
+  const candidate = targetRelativePath.trim();
+  if (!candidate || candidate === '.' || candidate === '/' || candidate.startsWith('/')) {
+    throw new Error(`Invalid ${label}: ${targetRelativePath}`);
+  }
+  const normalized = candidate.replace(/\\/g, '/');
+  if (normalized.startsWith('../') || normalized === '..' || /(^|\/)(\.\.)($|\/)/.test(normalized)) {
+    throw new Error(`Invalid ${label}: ${targetRelativePath}`);
+  }
+  const resolved = path.resolve(workspaceRoot, normalized);
+  const relative = path.relative(workspaceRoot, resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error(`Invalid ${label}: ${targetRelativePath}`);
+  }
+  return resolved;
+}
+
 export function resolveWorkspaceRoot(store: Pick<AgentCatalogStore, 'getPaths'>): string {
   return path.dirname(store.getPaths().manifest);
 }
@@ -24,8 +41,9 @@ export function resolveSkillTargetPath(store: Pick<AgentCatalogStore, 'getPaths'
 
 export function materializeSkill(store: Pick<AgentCatalogStore, 'getPaths'>, name: string, targetRelativePath?: string): string {
   const sourcePath = resolveRuntimeModulePath('skill', name);
+  const workspaceRoot = resolveWorkspaceRoot(store);
   const targetPath = targetRelativePath
-    ? path.resolve(resolveWorkspaceRoot(store), targetRelativePath)
+    ? assertWorkspaceRelativePath(workspaceRoot, targetRelativePath, 'skill target path')
     : resolveSkillTargetPath(store, name, sourcePath);
   mkdirSync(path.dirname(targetPath), { recursive: true });
   writeFileSync(targetPath, readFileSync(sourcePath, 'utf8'), 'utf8');
@@ -47,7 +65,8 @@ export async function materializeRemoteSkill(
     throw new Error(`Skill "${name}" was not found in ${source.url}`);
   }
 
-  const targetPath = path.resolve(resolveWorkspaceRoot(store), targetRelativePath);
+  const workspaceRoot = resolveWorkspaceRoot(store);
+  const targetPath = assertWorkspaceRelativePath(workspaceRoot, targetRelativePath, 'skill target path');
   mkdirSync(path.dirname(targetPath), { recursive: true });
   writeFileSync(targetPath, markdown, 'utf8');
   return targetPath;

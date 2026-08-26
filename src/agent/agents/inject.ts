@@ -88,23 +88,47 @@ function injectTomlMcpServers(filePath: string, key: string, serverConfig: Agent
     return;
   }
 
-  const sectionPattern = /^\[mcp_servers\]\s*\n/mi;
-  if (sectionPattern.test(existing)) {
-    const bodyMatch = existing.match(/^\[mcp_servers\]\s*\n([\s\S]*?)(?=^\[|\s*$)/m);
-    const body = bodyMatch ? bodyMatch[1] : '';
-    const keyPattern = new RegExp(`^${key}\s*=.*$`, 'm');
-    let nextBody = body;
-    if (keyPattern.test(body)) {
-      nextBody = body.replace(keyPattern, entry.join('\n'));
-    } else {
-      nextBody = `${body.trimEnd()}\n${entry.join('\n')}\n`; 
-    }
-    const replaced = existing.replace(/^\[mcp_servers\]\s*\n[\s\S]*?(?=^\[|\s*$)/m, `${section}\n${nextBody}`);
-    writeFileSync(filePath, replaced, 'utf8');
+  const lines = existing.split(/\r?\n/);
+  const sectionIndex = lines.findIndex((line) => line.trim() === section);
+  if (sectionIndex === -1) {
+    writeFileSync(filePath, `${existing.trimEnd()}\n\n${section}\n${entry.join('\n')}\n`, 'utf8');
     return;
   }
 
-  writeFileSync(filePath, `${existing.trimEnd()}\n\n${section}\n${entry.join('\n')}\n`, 'utf8');
+  const nextHeaderIndex = lines.findIndex((line, index) => index > sectionIndex && line.trim().startsWith('[') && line.trim().endsWith(']'));
+  const sectionBody = nextHeaderIndex === -1
+    ? lines.slice(sectionIndex + 1)
+    : lines.slice(sectionIndex + 1, nextHeaderIndex);
+  const trailing = nextHeaderIndex === -1 ? [] : lines.slice(nextHeaderIndex);
+
+  const kept: string[] = [];
+  let skipEntry = false;
+  for (const line of sectionBody) {
+    if (skipEntry) {
+      if (line.trim() === '}') {
+        skipEntry = false;
+      }
+      continue;
+    }
+
+    if (new RegExp(`^\\s*${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*=`).test(line)) {
+      skipEntry = line.includes('{');
+      continue;
+    }
+
+    if (line.trim()) {
+      kept.push(line);
+    }
+  }
+
+  const nextBody = [...kept, ...entry];
+  const nextFile = [
+    ...lines.slice(0, sectionIndex + 1),
+    ...nextBody,
+    ...(trailing.length > 0 ? ['', ...trailing] : []),
+  ].join('\n').replace(/\n{3,}/g, '\n\n').trimEnd();
+
+  writeFileSync(filePath, `${nextFile}\n`, 'utf8');
 }
 
 export interface InjectResult {

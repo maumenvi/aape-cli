@@ -6,6 +6,13 @@ export interface CatalogRegistryConfig {
   url: string;
 }
 
+export interface AgentManifestEntry {
+  id: string;
+  name: string;
+  enabled: boolean;
+  addedAt: string;
+}
+
 export interface SourcesManifest {
   name: string;
   version: string;
@@ -20,4 +27,5 @@ export interface SourcesManifest {
   skills: Record<string, SkillDependency>;
   mcps: Record<string, McpDependency>;
   tools: Record<string, ToolDependency>;
+  agents: Record<string, AgentManifestEntry>;
 }

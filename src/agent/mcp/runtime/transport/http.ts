@@ -1,6 +1,24 @@
+import { loadDotEnvFromCurrentProject } from '../../../../config/index.ts';
 import type { MCPConfig, MCPHttpConfig } from '../../../tools/types.ts';
 import type { JsonRpcFailure, JsonRpcNotification, JsonRpcRequest, JsonRpcSuccess } from '../protocol/json-rpc.ts';
 import type { McpRequestOptions, McpTransport } from '../contracts/types.ts';
+
+function resolveEnvPlaceholders(value: string): string {
+  return value
+    .replace(/\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, key: string) => {
+      const resolved = process.env[key] ?? process.env[key.toUpperCase()] ?? process.env[key.toLowerCase()];
+      return typeof resolved === 'string' ? resolved : '';
+    })
+    .replace(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, key: string) => {
+      const resolved = process.env[key] ?? process.env[key.toUpperCase()] ?? process.env[key.toLowerCase()];
+      return typeof resolved === 'string' ? resolved : '';
+    });
+}
+
+function resolveHeaders(headers: Record<string, string> | undefined): Record<string, string> {
+  loadDotEnvFromCurrentProject();
+  return Object.fromEntries(Object.entries(headers ?? {}).map(([key, value]) => [key, resolveEnvPlaceholders(value)]));
+}
 
 function asHttpConfig(config: MCPConfig): MCPHttpConfig {
   if (config.transport !== 'http') {
@@ -75,7 +93,7 @@ export class McpHttpTransport implements McpTransport {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          ...(this.config.headers ?? {}),
+          ...resolveHeaders(this.config.headers),
         },
         body: JSON.stringify(payload),
         signal: controller.signal,

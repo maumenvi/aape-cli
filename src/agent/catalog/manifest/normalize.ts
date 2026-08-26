@@ -16,4 +16,5 @@ export const normalizeManifest = (parsed: Partial<SourcesManifest>): SourcesMani
   skills: { ...(parsed.skills ?? {}) },
   mcps: { ...(parsed.mcps ?? {}) },
   tools: { ...(parsed.tools ?? {}) },
+  agents: { ...(parsed.agents ?? {}) },
 });

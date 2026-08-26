@@ -87,6 +87,28 @@ describe('CLI agent/init', () => {
     }
   });
 
+  it('persists selected agents to the project manifest when -save is used', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-agent-save-'));
+    const originalCwd = process.cwd();
+    const store = new AgentCatalogStore({ cwd: tempDir });
+
+    try {
+      process.chdir(tempDir);
+
+      await initCommand(['codex', '-save'], { store });
+      await agentCommand(['claude', '-save'], { store });
+
+      const manifest = JSON.parse(readFileSync(store.getPaths().manifest, 'utf8'));
+      assert.ok(manifest.agents.codex);
+      assert.equal(manifest.agents.codex.name, 'OpenAI Codex');
+      assert.ok(manifest.agents.claude);
+      assert.equal(manifest.agents.claude.name, 'Claude Desktop');
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('creates Codex config on init when Codex is selected', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-codex-init-'));
     const originalCwd = process.cwd();
@@ -129,6 +151,25 @@ describe('CLI agent/init', () => {
       process.env.HOME = originalHome;
       rmSync(tempDir, { recursive: true, force: true });
       rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps Codex config idempotent across repeated init runs', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-codex-idempotent-'));
+    const originalCwd = process.cwd();
+
+    try {
+      process.chdir(tempDir);
+
+      await initCommand(['codex'], { store: new AgentCatalogStore({ cwd: tempDir }) });
+      await initCommand(['codex'], { store: new AgentCatalogStore({ cwd: tempDir }) });
+
+      const contents = readFileSync(path.resolve(tempDir, '.codex', 'config.toml'), 'utf8');
+      assert.equal((contents.match(/aape\s*=\s*\{/g) ?? []).length, 1);
+      assert.doesNotMatch(contents, /aape\s*=\s*\{\s*aape\s*=\s*\{/);
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
     }
   });
 });

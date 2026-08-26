@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { agentRegistry, findAgent } from '../agents/index.ts';
 import { buildCatalogContexts, syncVsCodeMcpConfig } from './context/index.ts';
 import { buildLockFromManifest, verifySourceLock } from './lock/index.ts';
 import { createDefaultManifest, normalizeManifest } from './manifest/index.ts';
@@ -89,6 +90,28 @@ export class AgentCatalogStore {
   addDependency(kind: CatalogKind, name: string, dependency: SkillDependency | McpDependency | ToolDependency): void {
     const manifest = this.loadManifest();
     this.saveManifest(setManifestDependency(manifest, kind, name, dependency));
+  }
+
+  saveSelectedAgents(agentIds: string[]): void {
+    const manifest = this.loadManifest();
+    const selected = new Map<string, { id: string; name: string; enabled: boolean; addedAt: string }>();
+
+    for (const id of [...new Set(agentIds)]) {
+      const target = findAgent(id) ?? agentRegistry.find((agent) => agent.id === id);
+      const agentName = target?.name ?? id;
+      selected.set(id, {
+        id,
+        name: agentName,
+        enabled: true,
+        addedAt: new Date().toISOString(),
+      });
+    }
+
+    manifest.agents = {
+      ...manifest.agents,
+      ...Object.fromEntries(selected.entries()),
+    };
+    this.saveManifest(manifest);
   }
 
   removeDependency(kind: CatalogKind, name: string): void {

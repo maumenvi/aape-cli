@@ -40,6 +40,21 @@ export function normalizeAgentIds(agentIds: string[]): string[] {
   )];
 }
 
+export function parseSaveFlag(args: string[]): { save: boolean; remaining: string[] } {
+  const remaining: string[] = [];
+  let save = false;
+
+  for (const token of args) {
+    if (token === '-save' || token === '--save') {
+      save = true;
+      continue;
+    }
+    remaining.push(token);
+  }
+
+  return { save, remaining };
+}
+
 export function parseAgentSelection(input: string): string[] {
   const tokens = input
     .split(/[\s,]+/)
@@ -142,10 +157,14 @@ export function ensureInitialized(store: AgentCatalogStore): void {
 export const initCommand: CommandHandler = async (args, { store }) => {
   ensureInitialized(store);
 
-  const explicitAgentIds = normalizeAgentIds(args);
+  const { save, remaining } = parseSaveFlag(args);
+  const explicitAgentIds = normalizeAgentIds(remaining);
   const agentIds = explicitAgentIds.length > 0 ? explicitAgentIds : await promptForAgentIds();
 
   if (agentIds.length === 0) {
+    if (save) {
+      store.saveSelectedAgents([]);
+    }
     console.log('Initialized aape manifest, lockfile, and agent guidance files');
     return;
   }
@@ -161,6 +180,10 @@ export const initCommand: CommandHandler = async (args, { store }) => {
 
   const uniqueTargets = [...new Map(targets.map((target) => [target.id, target])).values()];
   const cwd = process.cwd();
+
+  if (save) {
+    store.saveSelectedAgents(uniqueTargets.map((target) => target.id));
+  }
 
   console.log('Initialized aape manifest, lockfile, and agent guidance files');
   let applied = false;

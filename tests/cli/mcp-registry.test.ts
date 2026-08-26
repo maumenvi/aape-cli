@@ -124,4 +124,49 @@ describe('MCP Registry provider', () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('normalizes Smithery-style bare placeholders in remote headers', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-mcp-bare-placeholder-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => Response.json({
+        servers: [{
+          server: {
+            name: 'ai.smithery/renCosta2025-context7fork',
+            title: 'Context7',
+            description: 'Context7 remote MCP',
+            version: '1.0.0',
+            repository: { url: 'https://example.com/context7' },
+            remotes: [{
+              type: 'streamable-http',
+              url: 'https://server.smithery.ai/@renCosta2025/context7fork/mcp',
+              headers: [{
+                name: 'Authorization',
+                value: 'Bearer {smithery_api_key}',
+                description: 'Smithery API key',
+                isRequired: true,
+                isSecret: true,
+              }],
+            }],
+          },
+        }],
+      });
+
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      const results = await discoverMcpsFromStore(store, 'context7');
+      assert.equal(results.length, 1);
+      assert.deepEqual(results[0]?.credentials, [{
+        name: 'Authorization',
+        envName: 'RENCOSTA2025_CONTEXT7FORK_AUTHORIZATION',
+        description: 'Smithery API key',
+        sourceUrl: 'https://example.com/context7',
+      }]);
+      const install = results[0]?.install as { type: 'mcp'; vscode: { transport: string; headers?: Record<string, string> } };
+      assert.equal(install.vscode.transport, 'http');
+      assert.equal(install.vscode.headers?.Authorization, 'Bearer ${env:RENCOSTA2025_CONTEXT7FORK_AUTHORIZATION}');
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });

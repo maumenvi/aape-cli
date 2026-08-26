@@ -32,4 +32,5 @@ export const createDefaultManifest = (): SourcesManifest => ({
   skills: {},
   mcps: {},
   tools: {},
+  agents: {},
 });

@@ -1,8 +1,41 @@
 import path from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '../..');
+
+export function loadDotEnvFromFile(filePath: string): void {
+  if (!existsSync(filePath)) {
+    return;
+  }
+
+  const content = readFileSync(filePath, 'utf8');
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+    const separator = line.indexOf('=');
+    if (separator <= 0) {
+      continue;
+    }
+    const key = line.slice(0, separator).trim();
+    const value = line.slice(separator + 1).trim();
+    if (!key || Object.prototype.hasOwnProperty.call(process.env, key)) {
+      continue;
+    }
+    const unquoted = value.replace(/^['"]|['"]$/g, '');
+    process.env[key] = unquoted;
+  }
+}
+
+export function loadDotEnvFromCurrentProject(): void {
+  loadDotEnvFromFile(path.resolve(process.cwd(), '.env'));
+}
+
+const workspaceDotEnv = path.resolve(process.cwd(), '.env');
+loadDotEnvFromFile(workspaceDotEnv);
 
 const getEnv = (key: string, fallback = ''): string => {
   const value = process.env[key];

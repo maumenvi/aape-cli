@@ -1,8 +1,29 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { loadDotEnvFromCurrentProject } from '../../../../config/index.ts';
 import type { MCPConfig, MCPStdioConfig } from '../../../tools/types.ts';
 import type { McpRequestOptions, McpTransport } from '../contracts/types.ts';
 import { encodeMcpMessage, McpMessageDecoder } from '../protocol/framing.ts';
 import type { JsonRpcFailure, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccess } from '../protocol/json-rpc.ts';
+
+function resolveEnvPlaceholders(value: string): string {
+  return value
+    .replace(/\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, key: string) => {
+      const resolved = process.env[key] ?? process.env[key.toUpperCase()] ?? process.env[key.toLowerCase()];
+      return typeof resolved === 'string' ? resolved : '';
+    })
+    .replace(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, key: string) => {
+      const resolved = process.env[key] ?? process.env[key.toUpperCase()] ?? process.env[key.toLowerCase()];
+      return typeof resolved === 'string' ? resolved : '';
+    });
+}
+
+function resolveRuntimeEnv(env: Record<string, string> | undefined): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env ?? {})) {
+    result[key] = resolveEnvPlaceholders(value);
+  }
+  return result;
+}
 
 interface PendingRequest {
   resolve(value: unknown): void;
@@ -22,11 +43,13 @@ export class McpStdioTransport implements McpTransport {
   constructor(config: MCPConfig, defaultTimeoutMs = 15_000) {
     this.config = asStdioConfig(config);
     this.defaultTimeoutMs = defaultTimeoutMs;
+    loadDotEnvFromCurrentProject();
+    const runtimeEnv = resolveRuntimeEnv(this.config.env);
     this.child = spawn(this.config.command, this.config.args ?? [], {
       stdio: 'pipe',
       env: {
         ...process.env,
-        ...(this.config.env ?? {}),
+        ...runtimeEnv,
       },
     });
 
