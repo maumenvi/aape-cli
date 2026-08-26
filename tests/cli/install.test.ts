@@ -37,11 +37,11 @@ describe('CLI install/remove', () => {
       const store = new AgentCatalogStore({ cwd: tempDir });
       await installCommand(['mcp', 'github', '--transport', 'npx', '--package', '@modelcontextprotocol/server-github'], { store });
 
-      assert.ok(existsSync(path.resolve(tempDir, 'skills')));
-      assert.ok(existsSync(path.resolve(tempDir, 'mcps')));
-      assert.ok(existsSync(path.resolve(tempDir, 'tools')));
       assert.ok(existsSync(path.resolve(tempDir, 'sources')));
       assert.ok(existsSync(path.resolve(tempDir, 'source.lock')));
+      assert.ok(!existsSync(path.resolve(tempDir, 'skills')));
+      assert.ok(!existsSync(path.resolve(tempDir, 'mcps')));
+      assert.ok(!existsSync(path.resolve(tempDir, 'tools')));
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }

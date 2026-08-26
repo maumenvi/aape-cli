@@ -46,10 +46,7 @@ function extractCredentialRequirements(result: CatalogSearchResult): CredentialR
   const inferred = new Set<string>();
   const envMap = 'env' in result.install.vscode ? result.install.vscode.env : undefined;
   if (envMap) {
-    for (const [key, value] of Object.entries(envMap)) {
-      if (CREDENTIAL_NAME.test(key)) {
-        inferred.add(key);
-      }
+    for (const value of Object.values(envMap)) {
       for (const envName of parseEnvNames(value)) {
         if (CREDENTIAL_NAME.test(envName)) {
           inferred.add(envName);
@@ -135,7 +132,7 @@ export async function configureMcpCredentialsFromResult(
   const existing = existsSync(envFile) ? parseEnvFile(readFileSync(envFile, 'utf8')) : new Map<string, string>();
   const toPersist: Record<string, string> = {};
 
-  console.log(`MCP "${result.name}" pode exigir credenciais. Vamos configurar no .env: ${envFile}`);
+  console.log(`MCP "${result.name}" may require specific credentials. We will configure them in .env: ${envFile}`);
   const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const input = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
 
@@ -157,12 +154,12 @@ export async function configureMcpCredentialsFromResult(
       }
 
       if (!input) {
-        console.log(`  Defina ${requirement.envName} manualmente no .env para habilitar este MCP.`);
+        console.log(`  Set ${requirement.envName} manually in .env to enable this MCP.`);
         toPersist[requirement.envName] = '';
         continue;
       }
 
-      const value = (await input.question(`  Cole o valor de ${requirement.envName} (Enter para pular): `)).trim();
+      const value = (await input.question(`  Paste the value for ${requirement.envName} (Enter to skip): `)).trim();
       toPersist[requirement.envName] = value;
     }
   } finally {
@@ -171,6 +168,6 @@ export async function configureMcpCredentialsFromResult(
 
   if (Object.keys(toPersist).length > 0) {
     upsertEnvFile(envFile, toPersist);
-    console.log(`Arquivo de credenciais atualizado em ${envFile}`);
+    console.log(`Credentials file updated at ${envFile}`);
   }
 }

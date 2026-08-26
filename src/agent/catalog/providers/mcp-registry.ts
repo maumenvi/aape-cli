@@ -65,15 +65,33 @@ function toEnvVariableName(value: string): string {
   return /^[A-Z_]/.test(normalized) ? normalized : `MCP_${normalized}`;
 }
 
-function inputValue(input: RegistryInput): string {
-  return input.value ?? input.default ?? `\${env:${toEnvVariableName(input.name ?? 'VALUE')}}`;
+function credentialEnvPrefix(serverName: string): string {
+  const tail = serverName.split('/').filter(Boolean).pop() ?? serverName;
+  return toEnvVariableName(tail || 'MCP');
 }
 
-function inputMap(inputs: RegistryInput[] = []): Record<string, string> {
+function credentialEnvName(serverName: string, inputName?: string): string {
+  return toEnvVariableName(`${credentialEnvPrefix(serverName)}_${inputName ?? 'VALUE'}`);
+}
+
+function inputValue(serverName: string, input: RegistryInput): string {
+  if (input.value) {
+    return input.value;
+  }
+  if (input.default) {
+    return input.default;
+  }
+  const envName = isCredentialInput(input)
+    ? credentialEnvName(serverName, input.name)
+    : toEnvVariableName(input.name ?? 'VALUE');
+  return `\${env:${envName}}`;
+}
+
+function inputMap(serverName: string, inputs: RegistryInput[] = []): Record<string, string> {
   return Object.fromEntries(
     inputs
       .filter((input): input is RegistryInput & { name: string } => Boolean(input.name))
-      .map((input) => [input.name, inputValue(input)]),
+      .map((input) => [input.name, inputValue(serverName, input)]),
   );
 }
 
@@ -106,13 +124,14 @@ function isCredentialInput(input: RegistryInput): boolean {
 
 function collectCredentialHints(
   inputs: RegistryInput[] = [],
+  serverName = 'MCP',
   sourceUrl?: string,
 ): Array<{ name: string; envName: string; description?: string; sourceUrl?: string }> {
   return inputs
     .filter((input) => Boolean(input.name) && isCredentialInput(input))
     .map((input) => ({
       name: input.name as string,
-      envName: toEnvVariableName(input.name as string),
+      envName: credentialEnvName(serverName, input.name as string),
       description: input.description,
       sourceUrl,
     }));
@@ -131,7 +150,7 @@ function resolveMcpConfig(server: RegistryServer): MCPConfig | null {
       package: versionedPackage(npmPackage.identifier, npmPackage.version ?? server.version),
       npxArgs: runtimeArguments.length > 0 ? runtimeArguments : ['-y'],
       args: argumentValues(npmPackage.packageArguments),
-      env: inputMap(npmPackage.environmentVariables),
+      env: inputMap(server.name ?? server.title ?? 'MCP', npmPackage.environmentVariables),
     };
   }
 
@@ -145,8 +164,8 @@ function resolveMcpConfig(server: RegistryServer): MCPConfig | null {
   }
 
   return remote.type === 'sse'
-    ? { transport: 'sse', url: remote.url, headers: inputMap(remote.headers) }
-    : { transport: 'http', url: remote.url, headers: inputMap(remote.headers) };
+    ? { transport: 'sse', url: remote.url, headers: inputMap(server.name ?? server.title ?? 'MCP', remote.headers) }
+    : { transport: 'http', url: remote.url, headers: inputMap(server.name ?? server.title ?? 'MCP', remote.headers) };
 }
 
 function unwrapServer(entry: { server?: RegistryServer } | RegistryServer): RegistryServer {
@@ -154,6 +173,18 @@ function unwrapServer(entry: { server?: RegistryServer } | RegistryServer): Regi
     return (entry as { server?: RegistryServer }).server ?? {};
   }
   return entry as RegistryServer;
+}
+
+const DEFAULT_TIMEOUT_MS = 8000;
+
+async function fetchWithTimeout(fetchFn: FetchFn, input: string | URL, init?: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetchFn(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export class McpRegistryProvider implements CatalogProvider {
@@ -178,7 +209,7 @@ export class McpRegistryProvider implements CatalogProvider {
       version: 'latest',
       limit: String(limit),
     });
-    const response = await this.fetchFn(`${this.baseUrl}/v0.1/servers?${params.toString()}`);
+    const response = await fetchWithTimeout(this.fetchFn, `${this.baseUrl}/v0.1/servers?${params.toString()}`);
     if (!response.ok) {
       throw new Error(`MCP Registry search failed (${response.status})`);
     }
@@ -190,8 +221,8 @@ export class McpRegistryProvider implements CatalogProvider {
       if (!server.name || !vscode) {
         return [];
       }
-      const npmCredentials = server.packages?.flatMap((item) => collectCredentialHints(item.environmentVariables, server.repository?.url)) ?? [];
-      const remoteCredentials = server.remotes?.flatMap((item) => collectCredentialHints(item.headers, server.repository?.url || item.url)) ?? [];
+      const npmCredentials = server.packages?.flatMap((item) => collectCredentialHints(item.environmentVariables, server.name, server.repository?.url)) ?? [];
+      const remoteCredentials = server.remotes?.flatMap((item) => collectCredentialHints(item.headers, server.name, server.repository?.url || item.url)) ?? [];
       const credentials = [...npmCredentials, ...remoteCredentials].filter((value, index, values) =>
         values.findIndex((candidate) => candidate.name === value.name && candidate.sourceUrl === value.sourceUrl) === index,
       );

@@ -41,6 +41,9 @@ export async function discoverSkillsFromStore(
   store: AgentCatalogStore,
   query = '',
 ): Promise<CatalogSearchResult[]> {
+  if (query.trim()) {
+    console.log('Searching skills in the catalog... this may take a few seconds.');
+  }
   return searchCatalog(store.loadManifest(), 'skill', query, 20);
 }
 
@@ -68,7 +71,7 @@ export async function runSkillsCli(
   if (command === 'find') {
     let results = await discoverSkillsFromStore(store, rest.join(' '));
     if (results.length === 0) {
-      console.log('Nenhuma skill encontrada para a busca informada.');
+      console.log('No skills were found for the provided search.');
       return 0;
     }
     while (results.length > 0) {
@@ -84,11 +87,11 @@ export async function runSkillsCli(
         if (!isMissingSkillInSourceError(error)) {
           throw error;
         }
-        console.log(`Skill indisponível na origem (${selected.source}). Escolha outra opção.`);
+        console.log(`Skill unavailable from source (${selected.source}). Choose another option.`);
         results = results.filter((entry) => entry.id !== selected.id);
       }
     }
-    console.log('Nenhuma skill instalável foi encontrada para a busca informada.');
+    console.log('No installable skills were found for the provided search.');
     return 0;
   }
 

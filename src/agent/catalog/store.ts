@@ -115,8 +115,7 @@ export class AgentCatalogStore {
   }
 
   getInstalledPackages(kind?: CatalogKind): LockPackage[] {
-    const lock = this.loadLock();
-    if (!lock) return [];
+    const lock = this.loadLock() ?? this.buildLock();
     const packages = Object.values(lock.packages);
     return kind ? packages.filter((pkg) => pkg.type === kind) : packages;
   }

@@ -21,6 +21,18 @@ function normalizeBaseUrl(value: string): string {
   return value.replace(/\/+$/, '');
 }
 
+const DEFAULT_TIMEOUT_MS = 8000;
+
+async function fetchWithTimeout(fetchFn: FetchFn, input: string | URL, init?: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetchFn(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export class SkillsShProvider implements CatalogProvider {
   readonly id: string;
   readonly kinds = ['skill'] as const;
@@ -39,7 +51,7 @@ export class SkillsShProvider implements CatalogProvider {
 
   async search(query: string, limit = 10): Promise<CatalogSearchResult[]> {
     const params = new URLSearchParams({ q: query.trim(), limit: String(limit) });
-    const response = await this.fetchFn(`${this.baseUrl}/api/search?${params.toString()}`);
+    const response = await fetchWithTimeout(this.fetchFn, `${this.baseUrl}/api/search?${params.toString()}`);
     if (!response.ok) {
       throw new Error(`skills.sh search failed (${response.status})`);
     }

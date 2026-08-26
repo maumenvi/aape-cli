@@ -21,17 +21,13 @@ function extractEnvNames(value: string): string[] {
 
 function collectCredentialNames(
   map: Record<string, string> | undefined,
-  includeMapKeys: boolean,
 ): string[] {
   if (!map) {
     return [];
   }
 
   const names = new Set<string>();
-  for (const [key, value] of Object.entries(map)) {
-    if (includeMapKeys && CREDENTIAL_NAME.test(key)) {
-      names.add(key);
-    }
+  for (const value of Object.values(map)) {
     for (const envName of extractEnvNames(value)) {
       if (CREDENTIAL_NAME.test(envName)) {
         names.add(envName);
@@ -47,8 +43,8 @@ export function extractCredentialEnvHints(result: CatalogSearchResult): string[]
     return Array.from(new Set(fromRegistry)).sort();
   }
 
-  const fromEnv = 'env' in result.install.vscode ? collectCredentialNames(result.install.vscode.env, true) : [];
-  const fromHeaders = 'headers' in result.install.vscode ? collectCredentialNames(result.install.vscode.headers, false) : [];
+  const fromEnv = 'env' in result.install.vscode ? collectCredentialNames(result.install.vscode.env) : [];
+  const fromHeaders = 'headers' in result.install.vscode ? collectCredentialNames(result.install.vscode.headers) : [];
   return Array.from(new Set([...fromRegistry, ...fromEnv, ...fromHeaders])).sort();
 }
 
@@ -67,7 +63,7 @@ export async function selectCatalogResult(results: CatalogSearchResult[]): Promi
     return null;
   }
 
-  console.log('Resultados disponíveis:\n');
+  console.log('Available results:\n');
   results.forEach((result, index) => {
     console.log(`${index + 1}) ${result.displayName} (${result.source})${formatInstalls(result.installs)}`);
     if (result.description) {
@@ -75,10 +71,10 @@ export async function selectCatalogResult(results: CatalogSearchResult[]): Promi
     }
     const credentials = extractCredentialEnvHints(result);
     if (credentials.length > 0) {
-      console.log(`   Requer chave/token: ${credentials.join(', ')}`);
+      console.log(`   Requires credentials: ${credentials.join(', ')}`);
       const sources = formatCredentialSources(result);
       if (sources.length > 0) {
-        console.log(`   Onde obter: ${sources.join(' | ')}`);
+        console.log(`   Where to obtain: ${sources.join(' | ')}`);
       }
     }
   });
@@ -86,7 +82,7 @@ export async function selectCatalogResult(results: CatalogSearchResult[]): Promi
   const input = createInterface({ input: process.stdin, output: process.stdout });
   try {
     while (true) {
-      const answer = await input.question(`\nEscolha uma opção (1-${results.length}, 0 para cancelar): `);
+      const answer = await input.question(`\nChoose an option (1-${results.length}, 0 to cancel): `);
       const choice = Number(answer.trim());
       if (choice === 0) {
         return null;
@@ -94,7 +90,7 @@ export async function selectCatalogResult(results: CatalogSearchResult[]): Promi
       if (Number.isInteger(choice) && choice >= 1 && choice <= results.length) {
         return results[choice - 1];
       }
-      console.log(`Opção inválida. Digite um número entre 1 e ${results.length}.`);
+      console.log(`Invalid option. Enter a number between 1 and ${results.length}.`);
     }
   } finally {
     input.close();

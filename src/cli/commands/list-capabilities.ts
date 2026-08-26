@@ -36,6 +36,7 @@ function printLines(lines: string[]): void {
     console.log('- none');
     return;
   }
+
   for (const line of lines) {
     console.log(`- ${line}`);
   }
@@ -59,12 +60,14 @@ function discoveredLines(kind: CatalogKind, results: CatalogSearchResult[]): str
   );
 }
 
-export const listToolsCommand: CommandHandler = async (args, { store }) => {
+export const listCapabilitiesCommand: CommandHandler = async (args, { store }) => {
   const { json, query } = parseArgs(args);
   const manifest = store.loadManifest();
+
   const registries = Object.entries(manifest.registries).map(([id, registry]) =>
     `${id} (${registry.provider}) -> ${registry.url}`,
   );
+
   const installed = installedLines(store);
   const local = {
     skills: localRegistryLines('skill'),
@@ -74,22 +77,28 @@ export const listToolsCommand: CommandHandler = async (args, { store }) => {
 
   if (json) {
     const payload = {
-      kind: 'capability-discovery',
+      kind: 'capabilities',
       query,
       registries,
       installed,
       local,
-      discovered: { skills: [] as string[], mcps: [] as string[] },
-      tip: 'aape list-tools <query>',
+      discovered: {
+        skills: [] as string[],
+        tools: [] as string[],
+        mcps: [] as string[],
+      },
+      tip: 'aape list-capabilities <query>',
     };
 
     if (query) {
-      const [skills, mcps] = await Promise.all([
+      const [skills, tools, mcps] = await Promise.all([
         searchCatalog(manifest, 'skill', query, 10),
+        searchCatalog(manifest, 'tool', query, 10),
         searchCatalog(manifest, 'mcp', query, 10),
       ]);
       payload.discovered = {
         skills: discoveredLines('skill', skills),
+        tools: discoveredLines('tool', tools),
         mcps: discoveredLines('mcp', mcps),
       };
     }
@@ -116,19 +125,22 @@ export const listToolsCommand: CommandHandler = async (args, { store }) => {
   printLines(local.mcps);
 
   if (!query) {
-    console.log('\nTip: run `aape list-tools <query>` to also discover skills and MCPs from configured catalogs.');
+    console.log('\nTip: run `aape list-capabilities <query>` to also discover skills, tools, and MCPs from configured catalogs.');
     return;
   }
 
-  console.log('Searching skills and MCPs in the catalog... this may take a few seconds.');
+  console.log('Searching skills, tools, and MCPs in the catalog... this may take a few seconds.');
   printSection(`Catalog discovery for "${query}"`);
-  const [skills, mcps] = await Promise.all([
+  const [skills, tools, mcps] = await Promise.all([
     searchCatalog(manifest, 'skill', query, 10),
+    searchCatalog(manifest, 'tool', query, 10),
     searchCatalog(manifest, 'mcp', query, 10),
   ]);
 
   console.log('skills');
   printLines(discoveredLines('skill', skills));
+  console.log('tools');
+  printLines(discoveredLines('tool', tools));
   console.log('mcps');
   printLines(discoveredLines('mcp', mcps));
 };

@@ -100,4 +100,126 @@ describe('CLI list-tools', () => {
     assert.match(rendered, /mcps/);
     assert.match(rendered, /mcp:io\.github\.example\/react provider=mcp source=https:\/\/github\.com\/example\/react-mcp/);
   });
+
+  it('supports structured JSON output for agent clients', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-list-tools-json-'));
+    const output: string[] = [];
+    const originalLog = console.log;
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === 'https://skills.sh/api/search?q=react&limit=10') {
+          return Response.json({
+            skills: [{
+              id: 'vercel-labs/skills/react',
+              skillId: 'react',
+              name: 'React',
+              source: 'vercel-labs/skills',
+            }],
+          });
+        }
+        if (url === 'https://registry.modelcontextprotocol.io/v0.1/servers?search=react&version=latest&limit=10') {
+          return Response.json({
+            servers: [{
+              server: {
+                name: 'io.github.example/react',
+                title: 'React MCP',
+                repository: { url: 'https://github.com/example/react-mcp' },
+                packages: [{
+                  registryType: 'npm',
+                  identifier: '@example/react-mcp',
+                  version: '1.0.0',
+                  transport: { type: 'stdio' },
+                }],
+              },
+            }],
+          });
+        }
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      console.log = (...args: unknown[]) => {
+        output.push(args.join(' '));
+      };
+
+      await listToolsCommand(['react', '--json'], { store });
+    } finally {
+      globalThis.fetch = originalFetch;
+      console.log = originalLog;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+
+    const rendered = output.join('\n');
+    const payload = JSON.parse(rendered);
+    assert.equal(payload.kind, 'capability-discovery');
+    assert.equal(payload.query, 'react');
+    assert.ok(Array.isArray(payload.installed));
+    assert.ok(Array.isArray(payload.discovered.skills));
+    assert.ok(Array.isArray(payload.discovered.mcps));
+  });
+
+  it('supports list-capabilities as unified discovery output', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-list-capabilities-json-'));
+    const output: string[] = [];
+    const originalLog = console.log;
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === 'https://skills.sh/api/search?q=react&limit=10') {
+          return Response.json({
+            skills: [{
+              id: 'vercel-labs/skills/react',
+              skillId: 'react',
+              name: 'React',
+              source: 'vercel-labs/skills',
+            }],
+          });
+        }
+        if (url === 'https://registry.modelcontextprotocol.io/v0.1/servers?search=react&version=latest&limit=10') {
+          return Response.json({
+            servers: [{
+              server: {
+                name: 'io.github.example/react',
+                title: 'React MCP',
+                repository: { url: 'https://github.com/example/react-mcp' },
+                packages: [{
+                  registryType: 'npm',
+                  identifier: '@example/react-mcp',
+                  version: '1.0.0',
+                  transport: { type: 'stdio' },
+                }],
+              },
+            }],
+          });
+        }
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      console.log = (...args: unknown[]) => {
+        output.push(args.join(' '));
+      };
+
+      const { listCapabilitiesCommand } = await import('../../src/cli/commands/list-capabilities.ts');
+      await listCapabilitiesCommand(['react', '--json'], { store });
+    } finally {
+      globalThis.fetch = originalFetch;
+      console.log = originalLog;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+
+    const rendered = output.join('\n');
+    const payload = JSON.parse(rendered);
+    assert.equal(payload.kind, 'capabilities');
+    assert.equal(payload.query, 'react');
+    assert.ok(Array.isArray(payload.installed));
+    assert.ok(Array.isArray(payload.discovered.skills));
+    assert.ok(Array.isArray(payload.discovered.tools));
+    assert.ok(Array.isArray(payload.discovered.mcps));
+  });
 });

@@ -4,7 +4,9 @@ import { contextCommand } from './context.ts';
 import { helpCommand } from './help.ts';
 import { initCommand } from './init.ts';
 import { installCommand } from './install.ts';
+import { listCapabilitiesCommand } from './list-capabilities.ts';
 import { listCommand } from './list.ts';
+import { listSkillsCommand } from './list-skills.ts';
 import { listToolsCommand } from './list-tools.ts';
 import { lockCommand } from './lock.ts';
 import { mcpCommand } from './mcp.ts';
@@ -25,7 +27,10 @@ export const commandHandlers: Record<string, CommandHandler> = {
   rm: removeCommand,
   remove: removeCommand,
   ls: listCommand,
+  'list-skills': listSkillsCommand,
   'list-tools': listToolsCommand,
+  'list-capabilities': listCapabilitiesCommand,
+  capabilities: listCapabilitiesCommand,
   discover: listToolsCommand,
   lock: lockCommand,
   up: lockCommand,

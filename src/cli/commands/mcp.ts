@@ -8,6 +8,9 @@ export async function discoverMcpsFromStore(
   store: AgentCatalogStore,
   query = '',
 ): Promise<CatalogSearchResult[]> {
+  if (query.trim()) {
+    console.log('Searching MCPs in the catalog... this may take a few seconds.');
+  }
   return searchCatalog(store.loadManifest(), 'mcp', query, 20);
 }
 
@@ -22,7 +25,7 @@ export const mcpCommand: CommandHandler = async (args, { store }) => {
   if (action === 'find') {
     const results = await discoverMcpsFromStore(store, args.slice(1).join(' '));
     if (results.length === 0) {
-      console.log('Nenhum MCP encontrado para a busca informada.');
+      console.log('No MCPs were found for the provided search.');
       return;
     }
     const selected = await selectCatalogResult(results);

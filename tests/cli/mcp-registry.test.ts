@@ -28,6 +28,13 @@ function registryResponse(): Response {
             { name: 'API_KEY', description: 'API key from Example dashboard', isRequired: true, isSecret: true },
           ],
         }],
+        remotes: [{
+          type: 'sse',
+          url: 'https://example.com/mcp',
+          headers: [
+            { name: 'AUTHORIZATION', description: 'Bearer token for Example', isRequired: true, isSecret: true },
+          ],
+        }],
       },
     }],
   });
@@ -52,8 +59,13 @@ describe('MCP Registry provider', () => {
       assert.equal(results[0]?.version, '1.2.3');
       assert.deepEqual(results[0]?.credentials, [{
         name: 'API_KEY',
-        envName: 'API_KEY',
+        envName: 'FILESYSTEM_API_KEY',
         description: 'API key from Example dashboard',
+        sourceUrl: 'https://github.com/example/filesystem',
+      }, {
+        name: 'AUTHORIZATION',
+        envName: 'FILESYSTEM_AUTHORIZATION',
+        description: 'Bearer token for Example',
         sourceUrl: 'https://github.com/example/filesystem',
       }]);
 
@@ -69,9 +81,12 @@ describe('MCP Registry provider', () => {
       assert.ok(existsSync(vscodeFile));
       const envFile = path.resolve(tempDir, '.env');
       assert.ok(existsSync(envFile));
-      assert.match(readFileSync(envFile, 'utf8'), /API_KEY=""/);
+      const envContent = readFileSync(envFile, 'utf8');
+      assert.match(envContent, /FILESYSTEM_API_KEY=""/);
+      assert.match(envContent, /FILESYSTEM_AUTHORIZATION=""/);
+      assert.doesNotMatch(envContent, /^AUTHORIZATION=""/m);
       const vscode = JSON.parse(readFileSync(vscodeFile, 'utf8')) as {
-        servers: Record<string, { args: string[]; env: Record<string, string> }>;
+       servers: Record<string, { args: string[]; env: Record<string, string> }>;
       };
       assert.deepEqual(vscode.servers['io.github.example/filesystem']?.args, [
         '-y',

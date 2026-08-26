@@ -21,13 +21,8 @@ function orderByPlatform(paths: { linux?: string; darwin?: string; win32?: strin
 const claude: AgentTarget = {
   id: 'claude',
   name: 'Claude Desktop',
-  configPaths() {
-    const home = homedir();
-    return orderByPlatform({
-      darwin: join(home, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json'),
-      linux: join(home, '.config', 'claude', 'claude_desktop_config.json'),
-      win32: join(home, 'AppData', 'Roaming', 'Claude', 'claude_desktop_config.json'),
-    });
+  configPaths(cwd) {
+    return [join(cwd, '.claude', 'claude_desktop_config.json')];
   },
   buildEntry: mcpEntry,
 };
@@ -42,16 +37,8 @@ const copilot: AgentTarget = {
   id: 'copilot',
   aliases: ['vscode', 'code'],
   name: 'VS Code Copilot',
-  configPaths() {
-    const home = homedir();
-    return [
-      // global Linux
-      join(home, '.config', 'Code', 'User', 'mcp.json'),
-      // global macOS
-      join(home, 'Library', 'Application Support', 'Code', 'User', 'mcp.json'),
-      // global Windows
-      join(home, 'AppData', 'Roaming', 'Code', 'User', 'mcp.json'),
-    ];
+  configPaths(cwd) {
+    return [join(cwd, '.vscode', 'mcp.json')];
   },
   buildEntry: mcpEntry,
 };
@@ -64,17 +51,7 @@ const cursor: AgentTarget = {
   aliases: ['cursor-ide'],
   name: 'Cursor',
   configPaths(cwd) {
-    const home = homedir();
-    return [
-      // per-project
-      join(cwd, '.cursor', 'mcp.json'),
-      // global Linux
-      join(home, '.config', 'Cursor', 'User', 'mcp.json'),
-      // global macOS
-      join(home, 'Library', 'Application Support', 'Cursor', 'User', 'mcp.json'),
-      // global Windows
-      join(home, 'AppData', 'Roaming', 'Cursor', 'User', 'mcp.json'),
-    ];
+    return [join(cwd, '.cursor', 'mcp.json')];
   },
   buildEntry: mcpEntry,
 };
@@ -86,13 +63,8 @@ const cursor: AgentTarget = {
 const zed: AgentTarget = {
   id: 'zed',
   name: 'Zed',
-  configPaths() {
-    const home = homedir();
-    return [
-      join(home, '.config', 'zed', 'settings.json'),
-      // macOS
-      join(home, 'Library', 'Application Support', 'Zed', 'settings.json'),
-    ];
+  configPaths(cwd) {
+    return [join(cwd, '.zed', 'settings.json')];
   },
   buildEntry: mcpEntry,
 };
@@ -105,15 +77,7 @@ const cline: AgentTarget = {
   id: 'cline',
   name: 'Cline',
   configPaths(cwd) {
-    const home = homedir();
-    return [
-      // per-project
-      join(cwd, '.cline', 'mcp.json'),
-      // global Linux
-      join(home, '.config', 'cline', 'mcp.json'),
-      // global macOS
-      join(home, 'Library', 'Application Support', 'cline', 'mcp.json'),
-    ];
+    return [join(cwd, '.cline', 'mcp.json')];
   },
   buildEntry: mcpEntry,
 };
@@ -127,12 +91,21 @@ const continueAgent: AgentTarget = {
   aliases: ['continue-dev'],
   name: 'Continue',
   configPaths(cwd) {
-    const home = homedir();
-    return [
-      join(home, '.continue', 'config.json'),
-      // per-project
-      join(cwd, '.continue', 'config.json'),
-    ];
+    return [join(cwd, '.continue', 'config.json')];
+  },
+  buildEntry: mcpEntry,
+};
+
+// ---------------------------------------------------------------------------
+// Codex (OpenAI CLI)
+// Codex stores MCP servers in ~/.codex/config.toml under [mcp_servers].
+// ---------------------------------------------------------------------------
+const codex: AgentTarget = {
+  id: 'codex',
+  aliases: ['openai-codex', 'gpt-codex'],
+  name: 'OpenAI Codex',
+  configPaths(cwd) {
+    return [join(cwd, '.codex', 'config.toml')];
   },
   buildEntry: mcpEntry,
 };
@@ -140,7 +113,7 @@ const continueAgent: AgentTarget = {
 // ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
-export const agentRegistry: AgentTarget[] = [claude, copilot, cursor, zed, cline, continueAgent];
+export const agentRegistry: AgentTarget[] = [claude, copilot, cursor, zed, cline, continueAgent, codex];
 
 export function findAgent(id: string): AgentTarget | undefined {
   const normalized = id.toLowerCase();

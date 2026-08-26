@@ -1,5 +1,12 @@
+import path from 'node:path';
 import { agentRegistry, findAgent, injectAgentConfig, resolveConfigPath } from '../../agent/agents/index.ts';
 import type { CommandHandler } from '../types.ts';
+
+function isProjectLocalConfig(configPath: string, cwd: string): boolean {
+  const resolvedCwd = path.resolve(cwd);
+  const resolvedConfig = path.resolve(configPath);
+  return resolvedConfig === resolvedCwd || resolvedConfig.startsWith(`${resolvedCwd}${path.sep}`);
+}
 
 function supportedAgentsMessage(): string {
   return agentRegistry
@@ -38,8 +45,14 @@ function configureAgents(agentIds: string[]): void {
   const targets = resolveTargets(agentIds);
   const cwd = process.cwd();
 
+  let applied = false;
   for (const target of targets) {
     const configPath = resolveConfigPath(target, cwd);
+    if (!isProjectLocalConfig(configPath, cwd)) {
+      console.log(`Skipping ${target.name} config injection: this project is local-only and does not modify global agent configs.`);
+      continue;
+    }
+
     const { created, updated, configPath: finalPath } = injectAgentConfig(target, cwd, configPath);
     const action = created ? 'Created' : updated ? 'Updated' : 'No change in';
     console.log(`${action} ${target.name} config: ${finalPath}`);
@@ -47,6 +60,11 @@ function configureAgents(agentIds: string[]): void {
     if (target.id !== 'copilot') {
       console.log('Restart the agent/app to pick up the new MCP server.');
     }
+    applied = true;
+  }
+
+  if (!applied) {
+    console.log('No global agent config was modified. Aape is configured for local project management only.');
   }
 }
 

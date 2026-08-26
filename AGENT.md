@@ -26,7 +26,29 @@ node src/cli/index.ts init
 node src/cli/index.ts init claude vscode
 node src/cli/index.ts add agent claude cursor
 node src/cli/index.ts mcp-server
+node src/cli/index.ts list-capabilities --json
+node src/cli/index.ts list-tools --json
+node src/cli/index.ts list-skills --json
 ```
+
+## Capability discovery protocol
+
+When an agent needs to know which skills, tools, or MCP servers are available in the workspace, it must not guess from the runtime or from local project files alone.
+
+The canonical discovery path is the CLI:
+
+```bash
+aape list-capabilities --json
+# or
+ aape list-tools --json
+ aape list-skills --json
+```
+
+Use `list-capabilities` as the primary command for inventory and discovery. It returns the installed entries, local registry, and catalog matches in one machine-readable payload.
+
+This matters because the project may register capabilities in the manifest while the active agent runtime only exposes a subset of them. The list commands are the authoritative source for the currently available Aape inventory.
+
+For external agents and editors, the built-in MCP server should also expose the same discovery flow via tool descriptions so the agent can call it automatically without repeated prompting.
 
 ## Project structure
 
@@ -60,3 +82,22 @@ tests/
 - If a new module does not support the CLI directly, it probably should not live in this repository.
 - When adding agent compatibility, wire it through the existing agent registry and config injection flow.
 - When adding runtime features, keep them compatible with the built-in MCP server and local catalog layout.
+
+
+<!-- aape-capability-discovery -->
+## Aape capability discovery
+
+Use the Aape CLI as the authoritative source of truth for skills, tools, and MCP servers.
+
+Before assuming a capability exists, query it with:
+
+```bash
+ aape list-capabilities --json
+ aape list-tools --json
+ aape list-skills --json
+```
+
+The project may register capabilities in the manifest while the active agent runtime only exposes a subset. Always prefer the CLI inventory for discovery.
+
+The built-in MCP server should also expose these discovery tools with clear descriptions so downstream agents can call them automatically without repeated prompting.
+

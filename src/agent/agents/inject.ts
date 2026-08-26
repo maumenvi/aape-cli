@@ -5,11 +5,13 @@ import type { AgentMcpEntry, AgentMcpServerConfig, AgentTarget } from './types.t
 export type AgentConfigFormat =
   | 'mcp-servers'      // { mcpServers: { key: config } }  — Claude Desktop, Continue
   | 'servers'          // { servers: { key: config } }      — VS Code Copilot, Cursor, Cline
-  | 'zed-settings';    // Zed settings.json merges under "context_servers"
+  | 'zed-settings'     // Zed settings.json merges under "context_servers"
+  | 'toml-mcp-servers'; // [mcp_servers] key = { command = ..., args = [...] }
 
-/** Detect which JSON schema the config file uses (or should use). */
+/** Detect which config schema the target agent expects. */
 function detectFormat(agentId: string): AgentConfigFormat {
   if (agentId === 'zed') return 'zed-settings';
+  if (agentId === 'codex') return 'toml-mcp-servers';
   if (agentId === 'claude' || agentId === 'continue') return 'mcp-servers';
   return 'servers';
 }
@@ -62,6 +64,49 @@ function injectZedSettings(
   };
 }
 
+function escapeTomlString(value: string): string {
+  return JSON.stringify(value);
+}
+
+function injectTomlMcpServers(filePath: string, key: string, serverConfig: AgentMcpServerConfig): void {
+  mkdirSync(dirname(filePath), { recursive: true });
+  const existing = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+  const entry = [
+    `${key} = {`,
+    `  command = ${escapeTomlString(serverConfig.command)},`,
+    `  args = ${JSON.stringify(serverConfig.args)},`,
+  ];
+
+  if (serverConfig.cwd) {
+    entry.push(`  cwd = ${escapeTomlString(serverConfig.cwd)},`);
+  }
+  entry.push('}');
+
+  const section = '[mcp_servers]';
+  if (!existing.trim()) {
+    writeFileSync(filePath, `${section}\n${entry.join('\n')}\n`, 'utf8');
+    return;
+  }
+
+  const sectionPattern = /^\[mcp_servers\]\s*\n/mi;
+  if (sectionPattern.test(existing)) {
+    const bodyMatch = existing.match(/^\[mcp_servers\]\s*\n([\s\S]*?)(?=^\[|\s*$)/m);
+    const body = bodyMatch ? bodyMatch[1] : '';
+    const keyPattern = new RegExp(`^${key}\s*=.*$`, 'm');
+    let nextBody = body;
+    if (keyPattern.test(body)) {
+      nextBody = body.replace(keyPattern, entry.join('\n'));
+    } else {
+      nextBody = `${body.trimEnd()}\n${entry.join('\n')}\n`; 
+    }
+    const replaced = existing.replace(/^\[mcp_servers\]\s*\n[\s\S]*?(?=^\[|\s*$)/m, `${section}\n${nextBody}`);
+    writeFileSync(filePath, replaced, 'utf8');
+    return;
+  }
+
+  writeFileSync(filePath, `${existing.trimEnd()}\n\n${section}\n${entry.join('\n')}\n`, 'utf8');
+}
+
 export interface InjectResult {
   configPath: string;
   created: boolean;
@@ -76,16 +121,22 @@ export function injectAgentConfig(
   const entry: AgentMcpEntry = target.buildEntry(cwd);
   const format = detectFormat(target.id);
   const existed = existsSync(configPath);
-  const data = readJson(configPath);
 
-  let updated: Record<string, unknown>;
   if (format === 'zed-settings') {
-    updated = injectZedSettings(data, entry.key, entry.config);
-  } else {
-    const topKey = format === 'mcp-servers' ? 'mcpServers' : 'servers';
-    updated = injectMcpServers(data, entry.key, entry.config, topKey);
+    const data = readJson(configPath);
+    const updated = injectZedSettings(data, entry.key, entry.config);
+    writeJson(configPath, updated);
+    return { configPath, created: !existed, updated: existed };
   }
 
+  if (format === 'toml-mcp-servers') {
+    injectTomlMcpServers(configPath, entry.key, entry.config);
+    return { configPath, created: !existed, updated: existed };
+  }
+
+  const data = readJson(configPath);
+  const topKey = format === 'mcp-servers' ? 'mcpServers' : 'servers';
+  const updated = injectMcpServers(data, entry.key, entry.config, topKey);
   writeJson(configPath, updated);
   return { configPath, created: !existed, updated: existed };
 }
