@@ -257,10 +257,3 @@ aape list-tools [query]
 aape rm <skill|mcp|tool> <name>
 aape version
 ```
-
-## Documentation in `/doc`
-
-- [Documentation index](./doc/README.md)
-- [Getting Started](./doc/getting-started.md)
-- [Catalogs and Credentials](./doc/catalogs-and-credentials.md)
-- [Command Reference](./doc/commands.md)
