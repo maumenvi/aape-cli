@@ -30,6 +30,12 @@ export interface CatalogSearchResult {
   source: string;
   version?: string;
   installs?: number;
+  credentials?: Array<{
+    name: string;
+    envName?: string;
+    description?: string;
+    sourceUrl?: string;
+  }>;
   install: CatalogInstall;
 }
 

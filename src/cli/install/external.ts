@@ -1,5 +1,6 @@
 import { findCatalogProvider, type CatalogSearchResult } from '../../agent/catalog/providers/index.ts';
 import type { AgentCatalogStore } from '../../agent/catalog/store.ts';
+import { configureMcpCredentialsFromResult } from './mcp-credentials.ts';
 import { installMcp } from './mcp.ts';
 import { installSkill } from './skill.ts';
 
@@ -31,6 +32,7 @@ export async function installCatalogResult(
   }
 
   if (result.kind === 'mcp' && result.install.type === 'mcp') {
+    await configureMcpCredentialsFromResult(store, result);
     installMcp(
       store,
       result.name,

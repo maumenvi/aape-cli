@@ -7,6 +7,9 @@ interface RegistryInput {
   name?: string;
   value?: string;
   default?: string;
+  description?: string;
+  isRequired?: boolean;
+  isSecret?: boolean;
 }
 
 interface RegistryArgument extends RegistryInput {
@@ -49,8 +52,21 @@ function normalizeBaseUrl(value: string): string {
   return value.replace(/\/+$/, '');
 }
 
+function toEnvVariableName(value: string): string {
+  const normalized = value
+    .trim()
+    .replace(/[^A-Za-z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+  if (!normalized) {
+    return 'VALUE';
+  }
+  return /^[A-Z_]/.test(normalized) ? normalized : `MCP_${normalized}`;
+}
+
 function inputValue(input: RegistryInput): string {
-  return input.value ?? input.default ?? `\${env:${input.name ?? 'VALUE'}}`;
+  return input.value ?? input.default ?? `\${env:${toEnvVariableName(input.name ?? 'VALUE')}}`;
 }
 
 function inputMap(inputs: RegistryInput[] = []): Record<string, string> {
@@ -76,6 +92,30 @@ function argumentValues(argumentsList: RegistryArgument[] = []): string[] {
 
 function versionedPackage(identifier: string, version?: string): string {
   return version ? `${identifier}@${version}` : identifier;
+}
+
+function isCredentialInput(input: RegistryInput): boolean {
+  const normalizedName = (input.name ?? '').toLowerCase();
+  const normalizedDescription = (input.description ?? '').toLowerCase();
+  return Boolean(
+    input.isSecret
+    || /token|key|secret|password|auth|bearer/.test(normalizedName)
+    || /token|key|secret|password|auth|bearer|api/.test(normalizedDescription),
+  );
+}
+
+function collectCredentialHints(
+  inputs: RegistryInput[] = [],
+  sourceUrl?: string,
+): Array<{ name: string; envName: string; description?: string; sourceUrl?: string }> {
+  return inputs
+    .filter((input) => Boolean(input.name) && isCredentialInput(input))
+    .map((input) => ({
+      name: input.name as string,
+      envName: toEnvVariableName(input.name as string),
+      description: input.description,
+      sourceUrl,
+    }));
 }
 
 function resolveMcpConfig(server: RegistryServer): MCPConfig | null {
@@ -150,6 +190,11 @@ export class McpRegistryProvider implements CatalogProvider {
       if (!server.name || !vscode) {
         return [];
       }
+      const npmCredentials = server.packages?.flatMap((item) => collectCredentialHints(item.environmentVariables, server.repository?.url)) ?? [];
+      const remoteCredentials = server.remotes?.flatMap((item) => collectCredentialHints(item.headers, server.repository?.url || item.url)) ?? [];
+      const credentials = [...npmCredentials, ...remoteCredentials].filter((value, index, values) =>
+        values.findIndex((candidate) => candidate.name === value.name && candidate.sourceUrl === value.sourceUrl) === index,
+      );
       return [{
         id: server.name,
         kind: 'mcp' as const,
@@ -159,6 +204,7 @@ export class McpRegistryProvider implements CatalogProvider {
         provider: this.id,
         source: server.repository?.url || this.baseUrl,
         version: server.version,
+        ...(credentials.length > 0 ? { credentials } : {}),
         install: { type: 'mcp' as const, vscode },
       }];
     });

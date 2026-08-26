@@ -6,6 +6,7 @@ type FetchFn = (input: string | URL, init?: RequestInit) => Promise<Response>;
 interface SkillsShResponse {
   skills?: Array<{
     id?: unknown;
+    skillId?: unknown;
     name?: unknown;
     installs?: unknown;
     source?: unknown;
@@ -46,26 +47,28 @@ export class SkillsShProvider implements CatalogProvider {
     const payload = await response.json() as SkillsShResponse;
     return (payload.skills ?? []).flatMap((skill) => {
       const id = cleanText(skill.id);
+      const skillId = cleanText(skill.skillId);
       const name = cleanText(skill.name);
       const source = cleanText(skill.source);
-      if (!id || !name || !source) {
+      const canonicalName = skillId || name;
+      if (!id || !canonicalName || !source) {
         return [];
       }
 
       const github = parseGitHubRepository(source);
       const install = github
-        ? { type: 'github' as const, repository: `${github.owner}/${github.repo}`, skill: name }
+        ? { type: 'github' as const, repository: `${github.owner}/${github.repo}`, skill: canonicalName }
         : {
             type: 'well-known' as const,
             baseUrl: /^https?:\/\//i.test(source) ? source : `https://${source}`,
-            skill: name,
+            skill: canonicalName,
           };
 
       return [{
         id,
         kind: 'skill' as const,
-        name,
-        displayName: name,
+        name: canonicalName,
+        displayName: name || canonicalName,
         provider: this.id,
         source,
         installs: typeof skill.installs === 'number' ? skill.installs : undefined,

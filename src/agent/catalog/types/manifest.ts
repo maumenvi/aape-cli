@@ -2,7 +2,7 @@ import type { CatalogSource } from './source.ts';
 import type { McpDependency, SkillDependency, ToolDependency } from './dependencies.ts';
 
 export interface CatalogRegistryConfig {
-  provider: 'skills.sh' | 'mcp';
+  provider: 'skills.sh' | 'github-skills' | 'mcp';
   url: string;
 }
 

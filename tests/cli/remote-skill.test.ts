@@ -53,4 +53,51 @@ describe('Remote skill install', () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('falls back to fuzzy directory matching when catalog skill id differs from repo folder', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-remote-skill-fuzzy-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      store.addSource('skillsHub', {
+        type: 'git',
+        url: 'https://github.com/martinholovsky/claude-skills-generator',
+        ref: 'main',
+        trusted: true,
+      });
+
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === 'https://raw.githubusercontent.com/martinholovsky/claude-skills-generator/main/skills/sqlite-database-expert/SKILL.md') {
+          return new Response('missing', { status: 404 });
+        }
+        if (url === 'https://api.github.com/repos/martinholovsky/claude-skills-generator/git/trees/main?recursive=1') {
+          return Response.json({
+            tree: [
+              { type: 'blob', path: 'skills/sqlite/SKILL.md' },
+              { type: 'blob', path: 'skills/python/SKILL.md' },
+            ],
+          });
+        }
+        if (url === 'https://raw.githubusercontent.com/martinholovsky/claude-skills-generator/main/skills/sqlite/SKILL.md') {
+          return new Response(FIND_SKILLS_MARKDOWN, { status: 200, headers: { 'content-type': 'text/plain' } });
+        }
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      await installCommand(['skill', 'sqlite-database-expert', '--source', 'skillsHub'], { store });
+
+      const lock = store.loadLock();
+      assert.ok(lock);
+      const pkg = lock?.packages['skill:sqlite-database-expert'];
+      assert.ok(pkg);
+      const installedPath = path.resolve(tempDir, pkg?.path ?? '');
+      assert.ok(existsSync(installedPath));
+      assert.ok(readFileSync(installedPath, 'utf8').includes('# Find Skills'));
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });

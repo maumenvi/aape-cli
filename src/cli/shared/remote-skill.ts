@@ -24,6 +24,58 @@ function skillDirectoryName(filePath: string): string {
   return segments.length > 1 ? segments[segments.length - 2] : '';
 }
 
+function tokenize(value: string): string[] {
+  return value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/i)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function scoreDirectoryMatch(requestedName: string, candidateName: string): number {
+  const requestedTokens = tokenize(requestedName);
+  const candidateTokens = tokenize(candidateName);
+  if (requestedTokens.length === 0 || candidateTokens.length === 0) {
+    return 0;
+  }
+
+  const requested = new Set(requestedTokens);
+  const candidate = new Set(candidateTokens);
+  let overlap = 0;
+  for (const token of candidate) {
+    if (requested.has(token)) {
+      overlap += 1;
+    }
+  }
+
+  if (overlap === 0) {
+    return 0;
+  }
+
+  if (requestedName.includes(candidateName) || candidateName.includes(requestedName)) {
+    return overlap + 0.5;
+  }
+
+  return overlap;
+}
+
+function bestFuzzySkillPath(skillFiles: string[], requestedName: string): string | null {
+  const ranked = skillFiles
+    .map((filePath) => ({ filePath, score: scoreDirectoryMatch(requestedName, skillDirectoryName(filePath)) }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  if (ranked.length === 0) {
+    return null;
+  }
+
+  if (ranked.length === 1 || ranked[0].score > ranked[1].score) {
+    return ranked[0].filePath;
+  }
+
+  return null;
+}
+
 async function discoverGitHubSkillPath(owner: string, repo: string, ref: string, name: string): Promise<string | null> {
   const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`;
   const response = await fetch(treeUrl, { headers: createGitHubHeaders() });
@@ -40,6 +92,7 @@ async function discoverGitHubSkillPath(owner: string, repo: string, ref: string,
     .map((entry) => entry.path as string);
 
   return skillFiles.find((filePath) => skillDirectoryName(filePath) === name)
+    ?? bestFuzzySkillPath(skillFiles, name)
     ?? (skillFiles.length === 1 ? skillFiles[0] : null);
 }
 

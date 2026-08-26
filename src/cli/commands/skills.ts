@@ -9,11 +9,13 @@ import type { CommandHandler } from '../types.ts';
 
 type SpawnFn = (...args: unknown[]) => unknown;
 
+const SKILL_REGISTRY_PROVIDERS = new Set(['skills.sh', 'github-skills']);
+
 function skillsProviderId(store: AgentCatalogStore): string {
   const entry = Object.entries(store.loadManifest().registries)
-    .find(([, config]) => config.provider === 'skills.sh');
+    .find(([, config]) => SKILL_REGISTRY_PROVIDERS.has(config.provider));
   if (!entry) {
-    throw new Error('No skills.sh registry is configured in sources');
+    throw new Error('No skill registry is configured in sources');
   }
   return entry[0];
 }
@@ -42,12 +44,16 @@ export async function discoverSkillsFromStore(
   return searchCatalog(store.loadManifest(), 'skill', query, 20);
 }
 
-async function resolveRequestedSkill(store: AgentCatalogStore, target: string): Promise<CatalogSearchResult | null> {
-  const direct = directGitHubResult(store, target);
-  if (direct) {
-    return direct;
+function isMissingSkillInSourceError(error: unknown): boolean {
+  return error instanceof Error && /was not found in/i.test(error.message);
+}
+
+function orderedByBestMatch(results: CatalogSearchResult[], target: string): CatalogSearchResult[] {
+  const best = bestCatalogMatch(results, target);
+  if (!best) {
+    return [];
   }
-  return bestCatalogMatch(await discoverSkillsFromStore(store, target), target);
+  return [best, ...results.filter((candidate) => candidate.id !== best.id)];
 }
 
 export async function runSkillsCli(
@@ -60,16 +66,29 @@ export async function runSkillsCli(
   const [command, ...rest] = args;
 
   if (command === 'find') {
-    const results = await discoverSkillsFromStore(store, rest.join(' '));
+    let results = await discoverSkillsFromStore(store, rest.join(' '));
     if (results.length === 0) {
       console.log('Nenhuma skill encontrada para a busca informada.');
       return 0;
     }
-    const selected = await selectCatalogResult(results);
-    if (selected) {
-      await installCatalogResult(store, selected);
-      console.log(`Installed skill:${selected.name}`);
+    while (results.length > 0) {
+      const selected = await selectCatalogResult(results);
+      if (!selected) {
+        return 0;
+      }
+      try {
+        await installCatalogResult(store, selected);
+        console.log(`Installed skill:${selected.name}`);
+        return 0;
+      } catch (error) {
+        if (!isMissingSkillInSourceError(error)) {
+          throw error;
+        }
+        console.log(`Skill indisponível na origem (${selected.source}). Escolha outra opção.`);
+        results = results.filter((entry) => entry.id !== selected.id);
+      }
     }
+    console.log('Nenhuma skill instalável foi encontrada para a busca informada.');
     return 0;
   }
 
@@ -78,12 +97,36 @@ export async function runSkillsCli(
     if (!target) {
       throw new Error('Usage: aape skills add <skill-name|owner/repo@skill>');
     }
-    const selected = await resolveRequestedSkill(store, target);
-    if (!selected) {
+    const direct = directGitHubResult(store, target);
+    if (direct) {
+      await installCatalogResult(store, direct);
+      console.log(`Installed skill:${direct.name}`);
+      return 0;
+    }
+
+    const orderedCandidates = orderedByBestMatch(await discoverSkillsFromStore(store, target), target);
+    if (orderedCandidates.length === 0) {
       throw new Error(`Skill "${target}" was not found in configured catalogs`);
     }
-    await installCatalogResult(store, selected);
-    console.log(`Installed skill:${selected.name}`);
+
+    let missingCount = 0;
+    for (const selected of orderedCandidates) {
+      try {
+        await installCatalogResult(store, selected);
+        console.log(`Installed skill:${selected.name}`);
+        return 0;
+      } catch (error) {
+        if (!isMissingSkillInSourceError(error)) {
+          throw error;
+        }
+        missingCount += 1;
+      }
+    }
+
+    if (missingCount > 0) {
+      throw new Error(`Skill "${target}" has catalog entries, but none are currently installable from their sources`);
+    }
+    throw new Error(`Skill "${target}" was not found in configured catalogs`);
     return 0;
   }
 

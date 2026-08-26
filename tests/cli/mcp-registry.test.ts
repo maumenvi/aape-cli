@@ -23,7 +23,10 @@ function registryResponse(): Response {
           version: '1.2.3',
           transport: { type: 'stdio' },
           runtimeArguments: [{ type: 'positional', value: '-y' }],
-          environmentVariables: [{ name: 'WORKSPACE_ROOT', isRequired: true }],
+          environmentVariables: [
+            { name: 'WORKSPACE_ROOT', isRequired: true },
+            { name: 'API_KEY', description: 'API key from Example dashboard', isRequired: true, isSecret: true },
+          ],
         }],
       },
     }],
@@ -47,6 +50,12 @@ describe('MCP Registry provider', () => {
       const results = await discoverMcpsFromStore(store, 'filesystem');
       assert.equal(results.length, 1);
       assert.equal(results[0]?.version, '1.2.3');
+      assert.deepEqual(results[0]?.credentials, [{
+        name: 'API_KEY',
+        envName: 'API_KEY',
+        description: 'API key from Example dashboard',
+        sourceUrl: 'https://github.com/example/filesystem',
+      }]);
 
       await installCatalogResult(store, results[0]);
 
@@ -58,6 +67,9 @@ describe('MCP Registry provider', () => {
 
       const vscodeFile = path.resolve(tempDir, '.vscode', 'mcp.json');
       assert.ok(existsSync(vscodeFile));
+      const envFile = path.resolve(tempDir, '.env');
+      assert.ok(existsSync(envFile));
+      assert.match(readFileSync(envFile, 'utf8'), /API_KEY=""/);
       const vscode = JSON.parse(readFileSync(vscodeFile, 'utf8')) as {
         servers: Record<string, { args: string[]; env: Record<string, string> }>;
       };
