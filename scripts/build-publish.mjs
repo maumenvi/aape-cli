@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { chmodSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -33,5 +33,7 @@ const copyJsonFilesRecursively = (sourceDir, targetDir) => {
 
 rmSync(distDir, { recursive: true, force: true });
 execSync('npx tsc -p tsconfig.publish.json', { cwd: rootDir, stdio: 'inherit' });
-copyJsonFilesRecursively(dataDir, distDataDir);
+if (existsSync(dataDir)) {
+  copyJsonFilesRecursively(dataDir, distDataDir);
+}
 chmodSync(path.resolve(distDir, 'src', 'cli', 'index.js'), 0o755);
