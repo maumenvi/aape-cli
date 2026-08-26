@@ -180,7 +180,7 @@ In `aape mcp add` (or installation through selection in `find`):
 
 - detects required variables;
 - prompts for values in the interactive terminal;
-- creates or updates the project's `.env` file.
+- creates or updates the project's `.env.aape` file without overwriting the real project `.env`.
 
 ## Command reference
 

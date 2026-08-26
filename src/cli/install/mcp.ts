@@ -1,5 +1,6 @@
 import type { AgentCatalogStore, McpDependency } from '../../agent/catalog/store.ts';
 import type { MCPConfig } from '../../agent/tools/types.ts';
+import { ensureMcpEnvFileEntries } from './mcp-credentials.ts';
 
 function toStringMap(input: unknown): Record<string, string> {
   if (!input || typeof input !== 'object') {
@@ -60,6 +61,7 @@ export function installMcp(
     allowedLlms,
     vscode,
   };
+  ensureMcpEnvFileEntries(store, vscode);
   store.addDependency('mcp', name, dependency);
   store.buildLock();
   store.syncVsCodeMcp();

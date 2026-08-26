@@ -178,7 +178,7 @@ Em `aape mcp add` (ou instalação por seleção no `find`):
 
 - detecta as variáveis necessárias;
 - pede os valores no terminal interativo;
-- cria ou atualiza o arquivo `.env` do projeto.
+- cria ou atualiza o arquivo `.env.aape` do projeto sem sobrescrever o `.env` real do projeto.
 
 ## Referência de comandos
 

@@ -1,9 +1,57 @@
 import path from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '../..');
+
+const REQUIRED_ENV_TEMPLATE = [
+  'SKILLS_REGISTRY_URL=https://skills.sh',
+  'MCP_REGISTRY_URL=https://registry.modelcontextprotocol.io',
+  'GITHUB_TOKEN=',
+  'NODE_ENV=development',
+  'LLM_MODEL=llama3.1',
+  'OLLAMA_BASE_URL=http://localhost:11434',
+  'OPENROUTER_API_KEY=',
+  'OPEN_ROUTER_KEY=',
+  'OPENROUTER_KEY=',
+  'OPENAI_API_KEY=',
+  'ANTHROPIC_API_KEY=',
+];
+
+export function ensureProjectDotEnv(filePath: string): void {
+  const existing = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+  const lines = existing ? existing.split(/\r?\n/) : [];
+  const known = new Set<string>();
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+    const separator = line.indexOf('=');
+    if (separator <= 0) {
+      continue;
+    }
+    const key = line.slice(0, separator).trim();
+    if (key) {
+      known.add(key);
+    }
+  }
+
+  const missing = REQUIRED_ENV_TEMPLATE.filter((entry) => {
+    const separator = entry.indexOf('=');
+    const key = separator > 0 ? entry.slice(0, separator).trim() : '';
+    return Boolean(key) && !known.has(key);
+  });
+
+  if (missing.length === 0 && existsSync(filePath)) {
+    return;
+  }
+
+  const template = [...lines, ...missing];
+  writeFileSync(filePath, `${template.join('\n')}\n`, 'utf8');
+}
 
 export function loadDotEnvFromFile(filePath: string): void {
   if (!existsSync(filePath)) {
@@ -31,11 +79,20 @@ export function loadDotEnvFromFile(filePath: string): void {
 }
 
 export function loadDotEnvFromCurrentProject(): void {
-  loadDotEnvFromFile(path.resolve(process.cwd(), '.env'));
+  const projectDotEnv = path.resolve(process.cwd(), '.env');
+  const projectDotAapeEnv = path.resolve(process.cwd(), '.env.aape');
+
+  if (existsSync(projectDotEnv)) {
+    loadDotEnvFromFile(projectDotEnv);
+  }
+
+  ensureProjectDotEnv(projectDotAapeEnv);
+  loadDotEnvFromFile(projectDotAapeEnv);
 }
 
-const workspaceDotEnv = path.resolve(process.cwd(), '.env');
-loadDotEnvFromFile(workspaceDotEnv);
+const workspaceDotEnv = path.resolve(process.cwd(), '.env.aape');
+ensureProjectDotEnv(workspaceDotEnv);
+loadDotEnvFromCurrentProject();
 
 const getEnv = (key: string, fallback = ''): string => {
   const value = process.env[key];

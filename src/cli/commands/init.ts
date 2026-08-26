@@ -3,6 +3,7 @@ import { createInterface } from 'node:readline/promises';
 import path from 'node:path';
 import { agentRegistry, findAgent, injectAgentConfig, resolveConfigPath } from '../../agent/agents/index.ts';
 import type { AgentCatalogStore } from '../../agent/catalog/store.ts';
+import { ensureProjectDotEnv } from '../../config/index.ts';
 import type { CommandHandler } from '../types.ts';
 
 const AGENT_GUIDANCE_MARKER = '<!-- aape-capability-discovery -->';
@@ -141,16 +142,42 @@ function ensureAgentGuidanceFile(targetPath: string): void {
 }
 
 export function ensureInitialized(store: AgentCatalogStore): void {
+  const root = path.dirname(store.getPaths().manifest);
+  ensureProjectDotEnv(path.resolve(root, '.env.aape'));
+
   const manifest = store.loadManifest();
   store.saveManifest(manifest);
   if (!store.loadLock()) {
     store.buildLock();
   }
 
-  const root = path.dirname(store.getPaths().manifest);
   const files = ['AGENTS.md', 'AGENT.md'];
   for (const file of files) {
     ensureAgentGuidanceFile(path.join(root, file));
+  }
+}
+
+export function restoreConfiguredAgents(store: AgentCatalogStore): void {
+  const manifest = store.loadManifest();
+  const ids = Object.keys(manifest.agents ?? {}).filter((id) => manifest.agents[id]?.enabled !== false);
+  if (ids.length === 0) {
+    return;
+  }
+
+  const cwd = process.cwd();
+  for (const id of ids) {
+    const target = findAgent(id);
+    if (!target) {
+      continue;
+    }
+    const configPath = resolveConfigPath(target, cwd);
+    if (!configPath.startsWith(`${cwd}${path.sep}`) && configPath !== cwd) {
+      continue;
+    }
+    const { created, updated, configPath: finalPath } = injectAgentConfig(target, cwd, configPath);
+    const action = created ? 'Created' : updated ? 'Updated' : 'No change in';
+    console.log(`${action} ${target.name} config: ${finalPath}`);
+    console.log(`aape mcp-server registered as "aape" in ${target.name}.`);
   }
 }
 

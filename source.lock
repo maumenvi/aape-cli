@@ -1,0 +1,16 @@
+{
+  "name": "aape-cli",
+  "lockfileVersion": 1,
+  "generatedAt": "2026-08-26T22:18:50.002Z",
+  "sources": {
+    "local": {
+      "type": "git",
+      "url": "https://github.com/maumenvi/aape.git",
+      "ref": "master",
+      "trusted": true,
+      "commit": "8359f1bff2c2a5c693d4caeb4798a60a775b33a0",
+      "commitResolved": false
+    }
+  },
+  "packages": {}
+}

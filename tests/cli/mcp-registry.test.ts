@@ -1,12 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
 import { installCommand } from '../../src/cli/commands/install.ts';
 import { discoverMcpsFromStore } from '../../src/cli/commands/mcp.ts';
 import { installCatalogResult } from '../../src/cli/install/external.ts';
+import { ensureProjectDotEnv, loadDotEnvFromCurrentProject } from '../../src/config/index.ts';
 
 function registryResponse(): Response {
   return Response.json({
@@ -79,7 +80,7 @@ describe('MCP Registry provider', () => {
 
       const vscodeFile = path.resolve(tempDir, '.vscode', 'mcp.json');
       assert.ok(existsSync(vscodeFile));
-      const envFile = path.resolve(tempDir, '.env');
+      const envFile = path.resolve(tempDir, '.env.aape');
       assert.ok(existsSync(envFile));
       const envContent = readFileSync(envFile, 'utf8');
       assert.match(envContent, /FILESYSTEM_API_KEY=""/);
@@ -98,6 +99,80 @@ describe('MCP Registry provider', () => {
       );
     } finally {
       globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('creates a blank .env.aape template when the project env file is missing', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-dotenv-bootstrap-'));
+    const originalCwd = process.cwd();
+
+    try {
+      process.chdir(tempDir);
+      const envFile = path.resolve(tempDir, '.env.aape');
+      assert.ok(!existsSync(envFile));
+      assert.ok(!existsSync(path.resolve(tempDir, '.env')));
+
+      loadDotEnvFromCurrentProject();
+
+      assert.ok(existsSync(envFile));
+      const content = readFileSync(envFile, 'utf8');
+      assert.match(content, /^SKILLS_REGISTRY_URL=/m);
+      assert.match(content, /^MCP_REGISTRY_URL=/m);
+      assert.match(content, /^OPENAI_API_KEY=/m);
+      assert.match(content, /^ANTHROPIC_API_KEY=/m);
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('adds missing required variables to an existing .env.aape file without removing custom entries', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-dotenv-merge-'));
+    const envFile = path.resolve(tempDir, '.env.aape');
+    writeFileSync(envFile, 'SKILLS_REGISTRY_URL=https://skills.sh\nNODE_ENV=development\n', 'utf8');
+
+    ensureProjectDotEnv(envFile);
+
+    const content = readFileSync(envFile, 'utf8');
+    assert.match(content, /^SKILLS_REGISTRY_URL=https:\/\/skills\.sh$/m);
+    assert.match(content, /^NODE_ENV=development$/m);
+    assert.match(content, /^MCP_REGISTRY_URL=https:\/\/registry\.modelcontextprotocol\.io$/m);
+    assert.match(content, /^GITHUB_TOKEN=$/m);
+  });
+
+  it('persists referenced env placeholders from any installed MCP config', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-mcp-env-bootstrap-'));
+    const store = new AgentCatalogStore({ cwd: tempDir });
+
+    try {
+      const config = {
+        transport: 'http' as const,
+        url: 'https://server.smithery.ai/@renCosta2025/context7fork/mcp',
+        headers: {
+          Authorization: '${env:RENCOSTA2025_CONTEXT7FORK_AUTHORIZATION}',
+          'X-Project': '${env:PROJECT_NAME}',
+        },
+      };
+
+      const envFile = path.resolve(tempDir, '.env.aape');
+      assert.ok(!existsSync(envFile));
+      assert.ok(!existsSync(path.resolve(tempDir, '.env')));
+
+      store.addSource('mcp', {
+        type: 'registry',
+        url: 'https://registry.modelcontextprotocol.io',
+        ref: 'v0.1',
+        trusted: true,
+      });
+      const { installMcp } = await import('../../src/cli/install/mcp.ts');
+      installMcp(store, 'context7fork', 'mcp', '1.0.0', ['*'], config);
+
+      assert.ok(existsSync(envFile));
+      const content = readFileSync(envFile, 'utf8');
+      assert.match(content, /^RENCOSTA2025_CONTEXT7FORK_AUTHORIZATION=""/m);
+      assert.match(content, /^PROJECT_NAME=""/m);
+    } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });

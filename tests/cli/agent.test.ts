@@ -6,6 +6,7 @@ import path from 'node:path';
 import { agentRegistry } from '../../src/agent/agents/registry.ts';
 import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
 import { agentCommand } from '../../src/cli/commands/agent.ts';
+import { installCommand } from '../../src/cli/commands/install.ts';
 import { initCommand, parseAgentSelection } from '../../src/cli/commands/init.ts';
 
 describe('CLI agent/init', () => {
@@ -103,6 +104,55 @@ describe('CLI agent/init', () => {
       assert.equal(manifest.agents.codex.name, 'OpenAI Codex');
       assert.ok(manifest.agents.claude);
       assert.equal(manifest.agents.claude.name, 'Claude Desktop');
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('re-applies saved agents when install runs without arguments', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-install-saved-agent-'));
+    const originalCwd = process.cwd();
+    const store = new AgentCatalogStore({ cwd: tempDir });
+
+    try {
+      process.chdir(tempDir);
+
+      await initCommand(['codex', '-save'], { store });
+      const codexConfig = path.resolve(tempDir, '.codex', 'config.toml');
+      rmSync(codexConfig, { force: true });
+      rmSync(path.dirname(codexConfig), { recursive: true, force: true });
+
+      await installCommand([], { store });
+
+      assert.ok(existsSync(codexConfig));
+      const contents = readFileSync(codexConfig, 'utf8');
+      assert.match(contents, /\[mcp_servers\]/);
+      assert.match(contents, /aape\s*=\s*\{/);
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('re-applies saved agents during CI verification', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-ci-saved-agent-'));
+    const originalCwd = process.cwd();
+    const store = new AgentCatalogStore({ cwd: tempDir });
+
+    try {
+      process.chdir(tempDir);
+      await initCommand(['copilot', '-save'], { store });
+      const config = path.resolve(tempDir, '.vscode', 'mcp.json');
+      rmSync(config, { force: true });
+      rmSync(path.dirname(config), { recursive: true, force: true });
+
+      const ci = await import('../../src/cli/commands/ci.ts').then((m) => m.ciCommand);
+      await ci([], { store });
+
+      assert.ok(existsSync(config));
+      const contents = readFileSync(config, 'utf8');
+      assert.match(contents, /"aape"/);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });

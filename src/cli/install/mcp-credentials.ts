@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import type { CatalogSearchResult } from '../../agent/catalog/providers/index.ts';
 import type { AgentCatalogStore } from '../../agent/catalog/store.ts';
+import type { MCPConfig } from '../../agent/tools/types.ts';
 
 const CREDENTIAL_NAME = /(token|key|secret|password|auth|bearer)/i;
 const ENV_PLACEHOLDER = /(\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}|\{([A-Za-z_][A-Za-z0-9_]*)\})/g;
@@ -28,6 +29,31 @@ function parseEnvNames(value: string): string[] {
       names.add(envName.trim());
     }
   }
+  return Array.from(names);
+}
+
+export function collectReferencedEnvNames(config: MCPConfig | undefined): string[] {
+  if (!config) {
+    return [];
+  }
+
+  const names = new Set<string>();
+  const candidates: Array<Record<string, string> | undefined> = [
+    'env' in config ? config.env : undefined,
+    'headers' in config ? config.headers : undefined,
+  ];
+
+  for (const group of candidates) {
+    if (!group) {
+      continue;
+    }
+    for (const value of Object.values(group)) {
+      for (const envName of parseEnvNames(String(value ?? ''))) {
+        names.add(envName);
+      }
+    }
+  }
+
   return Array.from(names);
 }
 
@@ -118,21 +144,45 @@ function upsertEnvFile(filePath: string, values: Record<string, string>): void {
   writeFileSync(filePath, normalized, 'utf8');
 }
 
+export function ensureMcpEnvFileEntries(store: AgentCatalogStore, config: MCPConfig | undefined): void {
+  const names = collectReferencedEnvNames(config);
+  if (names.length === 0) {
+    return;
+  }
+
+  const rootDir = path.dirname(store.getPaths().manifest);
+  const envFile = path.resolve(rootDir, '.env.aape');
+  const existing = existsSync(envFile) ? parseEnvFile(readFileSync(envFile, 'utf8')) : new Map<string, string>();
+  const toPersist: Record<string, string> = {};
+
+  for (const name of names) {
+    if (Object.prototype.hasOwnProperty.call(process.env, name) || existing.has(name)) {
+      continue;
+    }
+    toPersist[name] = '';
+  }
+
+  if (Object.keys(toPersist).length > 0) {
+    upsertEnvFile(envFile, toPersist);
+  }
+}
+
 export async function configureMcpCredentialsFromResult(
   store: AgentCatalogStore,
   result: CatalogSearchResult,
 ): Promise<void> {
   const requirements = extractCredentialRequirements(result);
   if (requirements.length === 0) {
+    ensureMcpEnvFileEntries(store, 'install' in result && result.install.type === 'mcp' ? result.install.vscode : undefined);
     return;
   }
 
   const rootDir = path.dirname(store.getPaths().manifest);
-  const envFile = path.resolve(rootDir, '.env');
+  const envFile = path.resolve(rootDir, '.env.aape');
   const existing = existsSync(envFile) ? parseEnvFile(readFileSync(envFile, 'utf8')) : new Map<string, string>();
   const toPersist: Record<string, string> = {};
 
-  console.log(`MCP "${result.name}" may require specific credentials. We will configure them in .env: ${envFile}`);
+  console.log(`MCP "${result.name}" may require specific credentials. We will configure them in .env.aape: ${envFile}`);
   const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const input = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
 
@@ -154,7 +204,7 @@ export async function configureMcpCredentialsFromResult(
       }
 
       if (!input) {
-        console.log(`  Set ${requirement.envName} manually in .env to enable this MCP.`);
+        console.log(`  Set ${requirement.envName} manually in .env.aape to enable this MCP.`);
         toPersist[requirement.envName] = '';
         continue;
       }

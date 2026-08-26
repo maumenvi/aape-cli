@@ -7,7 +7,7 @@ import { parseFlags } from '../shared/flags.ts';
 import { normalizeKind } from '../shared/kind.ts';
 import { reinstallFromLock } from '../shared/workspace.ts';
 import type { CommandHandler } from '../types.ts';
-import { ensureInitialized } from './init.ts';
+import { ensureInitialized, restoreConfiguredAgents } from './init.ts';
 
 function resolveAllowedLlms(flags: Record<string, string>): string[] {
   if (flags.allLlms === 'true' || flags['all-llms'] === 'true') {
@@ -29,6 +29,7 @@ export const installCommand: CommandHandler = async (args, { store }) => {
   if (positional.length === 0) {
     const lock = store.buildLock();
     const result = await reinstallFromLock(store, lock);
+    restoreConfiguredAgents(store);
     console.log(`Bootstrapped source.lock with ${Object.keys(lock.packages).length} locked entries`);
     console.log(`Installed ${result.skills.length} skills and synced MCP config`);
     return;
