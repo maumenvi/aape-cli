@@ -1,6 +1,6 @@
 {
   "name": "@maumenvi/maia-cli",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "CLI for cataloging and installing skills, MCPs, and tools for AI agents",
   "license": "MIT",
   "type": "module",
@@ -12,6 +12,7 @@
   },
   "files": [
     "dist",
+    ".env.maia.example",
     "README.md",
     "README.pt-BR.md",
     "LICENSE"
@@ -43,6 +44,9 @@
   },
   "engines": {
     "node": ">=26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
