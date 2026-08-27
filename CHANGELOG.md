@@ -14,11 +14,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - installed entries (skills, MCPs, and tools);
   - local registry inventory.
 - `maia list-tools <query>` now also discovers remote catalog matches for skills and MCPs.
+- Added a built-in `read_file` tool for workspace-local file reads, materialized as part of the CLI tool registry flow.
 
 ### Changed
 - Reduced the repository to the CLI-essential modules only.
 - Removed the legacy HTTP, pipeline, validation, LLM, and SDK-oriented surfaces.
 - Simplified package metadata and CI to validate the published CLI flow directly.
+- Read-only discovery commands no longer create `source.lock` or `.env.maia` side effects.
+- `verify` now checks artifact hashes and flags missing materialized files instead of silently accepting incomplete lock state.
+- `strictVerify` is opt-in and rejects unresolved source commits when enabled.
+- Remote skills now reinstall from the pinned source commit recorded in the lock instead of reusing a mutable branch reference.
+
+### Fixed
+- Fixed the empty-list access bug where `deny` was incorrectly treated as wildcard access.
+- Fixed false-positive installs for non-existent tools by refusing unknown local registry entries.
+- Fixed `ci` flow ordering so reinstall happens before strict verification; the lock is no longer validated against a missing artifact before rehydration.
+- Fixed workspace containment checks for `read_file` to prevent escaping the project root via absolute paths and symlinks.
+
+### Notes
+- Several production hardening items remain intentionally open and are tracked as follow-up work: visible secret input in MCP onboarding, inherited `process.env` for stdio/NPX MCPs, fixed MCP protocol version negotiation, and version alignment between package metadata and changelog.
 
 ## [1.5.2] - 2026-08-26
 

@@ -7,3 +7,4 @@ dist/
 !.env.maia.example
 .sources
 .source.*
+doc/
