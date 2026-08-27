@@ -6,9 +6,13 @@ import { createPackageDescriptor } from './package-descriptor.ts';
 
 export function buildLockFromManifest(manifest: SourcesManifest, workspaceRoot = process.cwd()): SourceLock {
   const defaultAccessPolicy = manifest.config.llmAccessDefault;
+  const strictVerify = manifest.config.strictVerify;
   const sources: SourceLock['sources'] = {};
   for (const [alias, source] of Object.entries(manifest.sources)) {
     const resolvedCommit = resolveSourceCommit(alias, source);
+    if (strictVerify && !resolvedCommit.commitResolved) {
+      throw new Error(`Unable to resolve commit for source "${alias}" while strictVerify is enabled`);
+    }
     sources[alias] = {
       ...source,
       commit: resolvedCommit.commit,

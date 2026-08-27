@@ -7,7 +7,7 @@ export const createDefaultManifest = (): SourcesManifest => ({
   maiaVersion: '^1.0.0',
   config: {
     registryStrategy: 'hybrid',
-    strictVerify: true,
+    strictVerify: false,
     llmAccessDefault: 'allow',
   },
   registries: {

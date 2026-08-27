@@ -34,6 +34,9 @@ describe('CLI ci', () => {
         if (url === 'https://raw.githubusercontent.com/vercel-labs/skills/main/skills/find-skills/SKILL.md') {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
+        if (/^https:\/\/raw\.githubusercontent\.com\/vercel-labs\/skills\/[0-9a-f]{40}\/skills\/find-skills\/SKILL\.md$/i.test(url)) {
+          return new Response(SKILL_MARKDOWN, { status: 200 });
+        }
         throw new Error(`Unexpected request: ${url}`);
       };
 

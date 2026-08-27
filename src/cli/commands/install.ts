@@ -5,9 +5,10 @@ import { createMcpConfig, installMcp } from '../install/mcp.ts';
 import { installSkill } from '../install/skill.ts';
 import { parseFlags } from '../shared/flags.ts';
 import { normalizeKind } from '../shared/kind.ts';
-import { reinstallFromLock } from '../shared/workspace.ts';
+import { materializeTool, reinstallFromLock } from '../shared/workspace.ts';
 import type { CommandHandler } from '../types.ts';
 import { ensureInitialized, restoreConfiguredAgents } from './init.ts';
+import path from 'node:path';
 
 function resolveAllowedLlms(flags: Record<string, string>): string[] {
   if (flags.allLlms === 'true' || flags['all-llms'] === 'true') {
@@ -70,6 +71,7 @@ export const installCommand: CommandHandler = async (args, { store }) => {
     if (!registryEntry) {
       throw new Error(`Tool "${name}" is not available in the local registry`);
     }
+    const targetPath = materializeTool(store, name);
     store.addDependency(kind, name, {
       version,
       source: 'local',
@@ -77,7 +79,7 @@ export const installCommand: CommandHandler = async (args, { store }) => {
       capabilities: registryEntry.capabilities ?? [],
       constraints: [],
       allowedLlms,
-      path: registryEntry.path,
+      path: path.relative(path.dirname(store.getPaths().manifest), targetPath).replaceAll('\\', '/'),
       inputSchema: registryEntry.inputSchema,
     });
     store.buildLock();

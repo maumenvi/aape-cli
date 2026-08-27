@@ -35,9 +35,18 @@ export function resolveSkillsDir(store: Pick<AgentCatalogStore, 'getPaths'>): st
   return path.resolve(resolveWorkspaceRoot(store), 'skills');
 }
 
+export function resolveToolsDir(store: Pick<AgentCatalogStore, 'getPaths'>): string {
+  return path.resolve(resolveWorkspaceRoot(store), 'tools');
+}
+
 export function resolveSkillTargetPath(store: Pick<AgentCatalogStore, 'getPaths'>, name: string, sourcePath: string): string {
   const extension = path.extname(sourcePath) || '.ts';
   return path.resolve(resolveSkillsDir(store), `${name}${extension}`);
+}
+
+export function resolveToolTargetPath(store: Pick<AgentCatalogStore, 'getPaths'>, name: string, sourcePath: string): string {
+  const extension = path.extname(sourcePath) || '.ts';
+  return path.resolve(resolveToolsDir(store), `${name}${extension}`);
 }
 
 export function materializeSkill(store: Pick<AgentCatalogStore, 'getPaths'>, name: string, targetRelativePath?: string): string {
@@ -53,6 +62,21 @@ export function materializeSkill(store: Pick<AgentCatalogStore, 'getPaths'>, nam
 
 export function materializeSkillFromLock(store: Pick<AgentCatalogStore, 'getPaths'>, pkg: Pick<LockPackage, 'name' | 'path'>): string {
   return materializeSkill(store, pkg.name, pkg.path);
+}
+
+export function materializeTool(store: Pick<AgentCatalogStore, 'getPaths'>, name: string, targetRelativePath?: string): string {
+  const sourcePath = resolveRuntimeModulePath('tool', name);
+  const workspaceRoot = resolveWorkspaceRoot(store);
+  const targetPath = targetRelativePath
+    ? assertWorkspaceRelativePath(workspaceRoot, targetRelativePath, 'tool target path')
+    : resolveToolTargetPath(store, name, sourcePath);
+  mkdirSync(path.dirname(targetPath), { recursive: true });
+  writeFileSync(targetPath, readFileSync(sourcePath, 'utf8'), 'utf8');
+  return targetPath;
+}
+
+export function materializeToolFromLock(store: Pick<AgentCatalogStore, 'getPaths'>, pkg: Pick<LockPackage, 'name' | 'path'>): string {
+  return materializeTool(store, pkg.name, pkg.path);
 }
 
 export async function materializeRemoteSkill(
@@ -96,9 +120,14 @@ export async function reinstallFromLock(store: Pick<AgentCatalogStore, 'getPaths
         return materializeSkillFromLock(store, pkg);
       }),
   );
+  const tools = await Promise.all(
+    Object.values(lock.packages)
+      .filter((pkg) => pkg.type === 'tool' && pkg.enabled)
+      .map(async (pkg) => materializeToolFromLock(store, pkg)),
+  );
   ensureLockMcpEnvFileEntries(store, lock);
   const { file: vscodeMcp } = syncVsCodeMcpConfig(store.getPaths(), lock);
-  return { skills, vscodeMcp };
+  return { skills: [...skills, ...tools], vscodeMcp };
 }
 
 export function removeMaterializedFile(filePath: string): void {

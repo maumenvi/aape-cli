@@ -151,6 +151,7 @@ describe('CLI install/remove', () => {
 
   it('installs and executes the built-in read_file tool', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-tool-read-file-'));
+    const originalCwd = process.cwd();
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveManifest(store.loadManifest());
@@ -161,13 +162,21 @@ describe('CLI install/remove', () => {
 
       const lock = store.loadLock();
       assert.ok(lock?.packages['tool:read_file']);
+      assert.ok(lock?.packages['tool:read_file'].artifactHash);
+      assert.ok(existsSync(path.resolve(tempDir, lock?.packages['tool:read_file'].path ?? '')));
 
+      process.chdir(tempDir);
       const runtime = await store.loadRuntimeModule('tool', 'read_file');
       assert.ok(runtime && typeof runtime === 'object' && 'tool' in runtime);
       const tool = (runtime as { tool: { execute(input: unknown): Promise<unknown> } }).tool;
       const result = await tool.execute({ path: targetFile });
       assert.equal((result as { content?: string }).content, 'hello tool\n');
+      await assert.rejects(
+        () => tool.execute({ path: '/etc/hostname' }),
+        /workspace/,
+      );
     } finally {
+      process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });
     }
   });

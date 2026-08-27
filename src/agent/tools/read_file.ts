@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import type { Tool } from './types.ts';
 
@@ -16,7 +16,20 @@ function resolveTargetPath(input: unknown): string {
     throw new Error('read_file expects a non-empty "path" field');
   }
 
-  return path.resolve(process.cwd(), filePath);
+  const workspaceRoot = realpathSync(process.cwd());
+  const targetPath = path.resolve(workspaceRoot, filePath);
+  if (!existsSync(targetPath)) {
+    throw new Error(`File not found: ${targetPath}`);
+  }
+
+  const workspaceRealPath = realpathSync(workspaceRoot);
+  const targetRealPath = realpathSync(targetPath);
+  const relative = path.relative(workspaceRealPath, targetRealPath);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error(`read_file can only access files inside the workspace: ${filePath}`);
+  }
+
+  return targetRealPath;
 }
 
 export const tool: Tool = {
@@ -32,7 +45,7 @@ export const tool: Tool = {
   },
   async execute(input: unknown) {
     const targetPath = resolveTargetPath(input);
-    if (!existsSync(targetPath) || !statSync(targetPath).isFile()) {
+    if (!statSync(targetPath).isFile()) {
       throw new Error(`File not found: ${targetPath}`);
     }
     return {
