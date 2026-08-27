@@ -45,6 +45,18 @@ export interface McpCallToolResult {
   [key: string]: unknown;
 }
 
+export const MCP_PROTOCOL_VERSIONS = ['2025-06-18', '2024-11-05'] as const;
+
+export type McpProtocolVersion = (typeof MCP_PROTOCOL_VERSIONS)[number];
+
+export function negotiateMcpProtocolVersion(requestedVersion?: string): McpProtocolVersion {
+  if (requestedVersion && MCP_PROTOCOL_VERSIONS.includes(requestedVersion as McpProtocolVersion)) {
+    return requestedVersion as McpProtocolVersion;
+  }
+
+  return MCP_PROTOCOL_VERSIONS[0];
+}
+
 export interface McpInitializeResult {
   protocolVersion?: string;
   serverInfo?: { name?: string; version?: string };

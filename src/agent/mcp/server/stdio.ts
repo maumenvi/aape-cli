@@ -5,8 +5,7 @@ import type { JsonRpcRequest, JsonRpcResponse } from '../runtime/protocol/json-r
 import { collectAllTools } from './collect.ts';
 import { routeToolCall } from './router.ts';
 import type { McpInitializeParams, McpToolEntry } from './types.ts';
-
-const PROTOCOL_VERSION = '2024-11-05';
+import { negotiateMcpProtocolVersion } from '../runtime/protocol/json-rpc.ts';
 
 export interface McpStdioServerOptions {
   name?: string;
@@ -109,12 +108,14 @@ export class McpStdioServer {
     }
   }
 
-  private handleInitialize(id: number, _params: McpInitializeParams): JsonRpcResponse {
+  private handleInitialize(id: number, params: McpInitializeParams): JsonRpcResponse {
+    const protocolVersion = negotiateMcpProtocolVersion(params?.protocolVersion);
+
     return {
       jsonrpc: '2.0',
       id,
       result: {
-        protocolVersion: PROTOCOL_VERSION,
+        protocolVersion,
         serverInfo: { name: this.serverName, version: this.serverVersion },
         capabilities: { tools: {} },
       },

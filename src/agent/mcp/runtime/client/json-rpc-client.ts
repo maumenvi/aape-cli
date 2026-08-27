@@ -1,5 +1,5 @@
 import type { McpClient, McpRequestOptions, McpTransport } from '../contracts/types.ts';
-import type { McpCallToolResult, McpInitializeResult, McpListToolsResult } from '../protocol/json-rpc.ts';
+import { negotiateMcpProtocolVersion, type McpCallToolResult, type McpInitializeResult, type McpListToolsResult } from '../protocol/json-rpc.ts';
 
 export class JsonRpcMcpClient implements McpClient {
   private readonly transport: McpTransport;
