@@ -99,15 +99,23 @@ Maia is useful in scenarios such as:
 
 ## Installation
 
-To use `maia` directly from your shell, install it globally:
+To use `maia` directly from your shell as a plain command, install it globally:
 
 ```bash
 npm install -g @maumenvi/maia-cli
 ```
 
-This adds the `maia` command to your PATH.
+This is the supported path for making `maia` available without `npx`, `npm exec`, or `npm run` prefixes.
 
-If you install it locally in a project, the binary is available at `node_modules/.bin/maia`.
+If you are installing from a local checkout, use either:
+
+```bash
+npm install -g .
+# or
+npm link
+```
+
+A plain `npm install` inside a project does not add `node_modules/.bin` to the shell PATH by default, so `maia` will not be found as a direct command unless that directory is already on your PATH. In a local project, the binary is still available at `node_modules/.bin/maia` and can be invoked explicitly or added to PATH.
 
 ## Basic usage
 
