@@ -27,6 +27,20 @@ function assertWorkspaceRelativePath(workspaceRoot: string, targetRelativePath: 
   return resolved;
 }
 
+function assertMaterializedPath(
+  workspaceRoot: string,
+  targetRelativePath: string,
+  label: string,
+  allowedPrefix: string,
+): string {
+  const resolved = assertWorkspaceRelativePath(workspaceRoot, targetRelativePath, label);
+  const relative = path.relative(workspaceRoot, resolved).replace(/\\/g, '/');
+  if (relative !== allowedPrefix && !relative.startsWith(`${allowedPrefix}/`)) {
+    throw new Error(`Invalid ${label}: ${targetRelativePath}`);
+  }
+  return resolved;
+}
+
 export function resolveWorkspaceRoot(store: Pick<AgentCatalogStore, 'getPaths'>): string {
   return path.dirname(store.getPaths().manifest);
 }
@@ -45,7 +59,7 @@ export function resolveSkillTargetPath(store: Pick<AgentCatalogStore, 'getPaths'
 }
 
 export function resolveToolTargetPath(store: Pick<AgentCatalogStore, 'getPaths'>, name: string, sourcePath: string): string {
-  const extension = path.extname(sourcePath) || '.ts';
+  const extension = path.extname(sourcePath) === '.ts' ? '.ts' : '.mjs';
   return path.resolve(resolveToolsDir(store), `${name}${extension}`);
 }
 
@@ -53,7 +67,7 @@ export function materializeSkill(store: Pick<AgentCatalogStore, 'getPaths'>, nam
   const sourcePath = resolveRuntimeModulePath('skill', name);
   const workspaceRoot = resolveWorkspaceRoot(store);
   const targetPath = targetRelativePath
-    ? assertWorkspaceRelativePath(workspaceRoot, targetRelativePath, 'skill target path')
+    ? assertMaterializedPath(workspaceRoot, targetRelativePath, 'skill target path', 'skills')
     : resolveSkillTargetPath(store, name, sourcePath);
   mkdirSync(path.dirname(targetPath), { recursive: true });
   writeFileSync(targetPath, readFileSync(sourcePath, 'utf8'), 'utf8');
@@ -68,7 +82,7 @@ export function materializeTool(store: Pick<AgentCatalogStore, 'getPaths'>, name
   const sourcePath = resolveRuntimeModulePath('tool', name);
   const workspaceRoot = resolveWorkspaceRoot(store);
   const targetPath = targetRelativePath
-    ? assertWorkspaceRelativePath(workspaceRoot, targetRelativePath, 'tool target path')
+    ? assertMaterializedPath(workspaceRoot, targetRelativePath, 'tool target path', 'tools')
     : resolveToolTargetPath(store, name, sourcePath);
   mkdirSync(path.dirname(targetPath), { recursive: true });
   writeFileSync(targetPath, readFileSync(sourcePath, 'utf8'), 'utf8');
@@ -98,6 +112,17 @@ export async function materializeRemoteSkill(
 }
 
 export async function reinstallFromLock(store: Pick<AgentCatalogStore, 'getPaths'>, lock: SourceLock): Promise<{ skills: string[]; vscodeMcp?: string }> {
+  const workspaceRoot = resolveWorkspaceRoot(store);
+  for (const pkg of Object.values(lock.packages)) {
+    if (!pkg.enabled || !pkg.path) continue;
+    if (pkg.type === 'skill') {
+      assertMaterializedPath(workspaceRoot, pkg.path, 'skill target path', 'skills');
+    }
+    if (pkg.type === 'tool') {
+      assertMaterializedPath(workspaceRoot, pkg.path, 'tool target path', 'tools');
+    }
+  }
+
   const skills = await Promise.all(
     Object.values(lock.packages)
       .filter((pkg) => pkg.type === 'skill' && pkg.enabled)

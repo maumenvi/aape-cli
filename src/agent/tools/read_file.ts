@@ -3,15 +3,12 @@ import path from 'node:path';
 import type { Tool } from './types.ts';
 
 function resolveTargetPath(input: unknown): string {
-  if (typeof input === 'string') {
-    return path.resolve(process.cwd(), input);
-  }
+  const filePath = typeof input === 'string'
+    ? input
+    : input && typeof input === 'object'
+      ? Reflect.get(input, 'path')
+      : undefined;
 
-  if (!input || typeof input !== 'object') {
-    throw new Error('read_file expects a "path" field');
-  }
-
-  const filePath = Reflect.get(input, 'path');
   if (typeof filePath !== 'string' || filePath.trim().length === 0) {
     throw new Error('read_file expects a non-empty "path" field');
   }
@@ -32,6 +29,13 @@ function resolveTargetPath(input: unknown): string {
   return targetRealPath;
 }
 
+function resolveTargetPathFromInput(input: unknown): string {
+  if (typeof input === 'string') {
+    return resolveTargetPath(input);
+  }
+  return resolveTargetPath(input);
+}
+
 export const tool: Tool = {
   name: 'read_file',
   description: 'Read a UTF-8 text file from the current workspace.',
@@ -44,7 +48,7 @@ export const tool: Tool = {
     additionalProperties: false,
   },
   async execute(input: unknown) {
-    const targetPath = resolveTargetPath(input);
+    const targetPath = resolveTargetPathFromInput(input);
     if (!statSync(targetPath).isFile()) {
       throw new Error(`File not found: ${targetPath}`);
     }
