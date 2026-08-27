@@ -57,7 +57,7 @@ function configureAgents(agentIds: string[]): void {
     const { created, updated, configPath: finalPath } = injectAgentConfig(target, cwd, configPath);
     const action = created ? 'Created' : updated ? 'Updated' : 'No change in';
     console.log(`${action} ${target.name} config: ${finalPath}`);
-    console.log(`aape mcp-server registered as "aape" in ${target.name}.`);
+    console.log(`maia mcp-server registered as "maia" in ${target.name}.`);
     if (target.id !== 'copilot') {
       console.log('Restart the agent/app to pick up the new MCP server.');
     }
@@ -65,7 +65,7 @@ function configureAgents(agentIds: string[]): void {
   }
 
   if (!applied) {
-    console.log('No global agent config was modified. Aape is configured for local project management only.');
+    console.log('No global agent config was modified. Maia is configured for local project management only.');
   }
 }
 
@@ -77,7 +77,7 @@ export const agentCommand: CommandHandler = async (args, { store }) => {
     const agentIds = remaining.slice(1);
     if (agentIds.length === 0) {
       const ids = supportedAgentsMessage();
-      throw new Error(`Usage: aape add agent <name...>\nSupported agents: ${ids}`);
+      throw new Error(`Usage: maia add agent <name...>\nSupported agents: ${ids}`);
     }
     configureAgents(agentIds);
     if (save) {
@@ -90,7 +90,7 @@ export const agentCommand: CommandHandler = async (args, { store }) => {
     const agentIds = remaining.slice(1);
     if (agentIds.length === 0) {
       const ids = supportedAgentsMessage();
-      throw new Error(`Usage: aape agent add <name...>\nSupported agents: ${ids}`);
+      throw new Error(`Usage: maia agent add <name...>\nSupported agents: ${ids}`);
     }
     configureAgents(agentIds);
     if (save) {
@@ -116,5 +116,5 @@ export const agentCommand: CommandHandler = async (args, { store }) => {
     return;
   }
 
-  throw new Error('Usage: aape agent add <name...> | aape add agent <name...> | aape add <name...> | aape agent ls');
+  throw new Error('Usage: maia agent add <name...> | maia add agent <name...> | maia add <name...> | maia agent ls');
 };

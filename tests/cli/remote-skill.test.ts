@@ -18,7 +18,7 @@ This skill helps you discover and install skills from the open agent skills ecos
 
 describe('Remote skill install', () => {
   it('downloads a skill from an explicitly configured GitHub source', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-remote-skill-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-remote-skill-'));
     const originalFetch = globalThis.fetch;
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
@@ -55,7 +55,7 @@ describe('Remote skill install', () => {
   });
 
   it('falls back to fuzzy directory matching when catalog skill id differs from repo folder', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-remote-skill-fuzzy-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-remote-skill-fuzzy-'));
     const originalFetch = globalThis.fetch;
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });

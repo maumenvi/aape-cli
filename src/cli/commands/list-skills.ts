@@ -72,7 +72,7 @@ export const listSkillsCommand: CommandHandler = async (args, { store }) => {
       installed,
       local,
       discovered: [] as string[],
-      tip: 'aape list-skills <query>',
+      tip: 'maia list-skills <query>',
     };
 
     if (query) {
@@ -83,7 +83,7 @@ export const listSkillsCommand: CommandHandler = async (args, { store }) => {
     return;
   }
 
-  console.log('Aape skill discovery');
+  console.log('Maia skill discovery');
 
   printSection('Configured registries');
   printLines(registries);
@@ -95,7 +95,7 @@ export const listSkillsCommand: CommandHandler = async (args, { store }) => {
   printLines(local);
 
   if (!query) {
-    console.log('\nTip: run `aape list-skills <query>` to search catalog entries or `aape skills find <query>` to install one.');
+    console.log('\nTip: run `maia list-skills <query>` to search catalog entries or `maia skills find <query>` to install one.');
     return;
   }
 
@@ -103,5 +103,5 @@ export const listSkillsCommand: CommandHandler = async (args, { store }) => {
   printSection(`Catalog discovery for "${query}"`);
   const results = await searchCatalog(manifest, 'skill', query, 10);
   printLines(discoveredLines(results));
-  console.log('\nTip: run `aape list-skills <query>` to search catalog entries or `aape skills find <query>` to install one.');
+  console.log('\nTip: run `maia list-skills <query>` to search catalog entries or `maia skills find <query>` to install one.');
 };

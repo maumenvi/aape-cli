@@ -26,7 +26,7 @@ export class McpStdioServer {
   constructor(catalog: AgentCatalogStore, options: McpStdioServerOptions = {}) {
     this.catalog = catalog;
     this.mcpManager = new AgentMcpManager(catalog);
-    this.serverName = options.name ?? 'aape-mcp-server';
+    this.serverName = options.name ?? 'maia-mcp-server';
     this.serverVersion = options.version ?? '1.0.0';
     this.dynamicDiscovery = options.dynamicDiscovery ?? false;
   }

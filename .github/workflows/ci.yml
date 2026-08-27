@@ -49,7 +49,7 @@ jobs:
       - name: "Smoke test: CLI entrypoint"
         run: |
           cd /tmp/test-cli
-          ./node_modules/.bin/aape help
+          ./node_modules/.bin/maia help
 
       - name: Validate package
         run: npm pack --dry-run

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains **Aape CLI** only.
+This repository contains **Maia CLI** only.
 
 The project is focused on:
 - bootstrapping `skills/`, `mcps/`, and `tools/`
@@ -38,15 +38,15 @@ When an agent needs to know which skills, tools, or MCP servers are available in
 The canonical discovery path is the CLI:
 
 ```bash
-aape list-capabilities --json
+maia list-capabilities --json
 # or
- aape list-tools --json
- aape list-skills --json
+ maia list-tools --json
+ maia list-skills --json
 ```
 
 Use `list-capabilities` as the primary command for inventory and discovery. It returns the installed entries, local registry, and catalog matches in one machine-readable payload.
 
-This matters because the project may register capabilities in the manifest while the active agent runtime only exposes a subset of them. The list commands are the authoritative source for the currently available Aape inventory.
+This matters because the project may register capabilities in the manifest while the active agent runtime only exposes a subset of them. The list commands are the authoritative source for the currently available Maia inventory.
 
 For external agents and editors, the built-in MCP server should also expose the same discovery flow via tool descriptions so the agent can call it automatically without repeated prompting.
 
@@ -84,32 +84,32 @@ tests/
 - When adding runtime features, keep them compatible with the built-in MCP server and local catalog layout.
 
 
-<!-- aape-capability-discovery -->
-## Aape capability discovery
+<!-- maia-capability-discovery -->
+## Maia capability discovery
 
-Use the Aape CLI as the authoritative source of truth for skills, tools, and MCP servers.
+Use the Maia CLI as the authoritative source of truth for skills, tools, and MCP servers.
 
 Before assuming a capability exists, query it with:
 
 ```bash
- aape list-capabilities --json
- aape list-tools --json
- aape list-skills --json
+ maia list-capabilities --json
+ maia list-tools --json
+ maia list-skills --json
 ```
 
 The project may register capabilities in the manifest while the active agent runtime only exposes a subset. Always prefer the CLI inventory for discovery.
 
 The built-in MCP server should also expose these discovery tools with clear descriptions so downstream agents can call them automatically without repeated prompting.
-## Aape capability discovery
+## Maia capability discovery
 
-Use the Aape CLI as the authoritative source of truth for skills, tools, and MCP servers.
+Use the Maia CLI as the authoritative source of truth for skills, tools, and MCP servers.
 
 Before assuming a capability exists, query it with:
 
 ```bash
- aape list-capabilities --json
- aape list-tools --json
- aape list-skills --json
+ maia list-capabilities --json
+ maia list-tools --json
+ maia list-skills --json
 ```
 
 The project may register capabilities in the manifest while the active agent runtime only exposes a subset. Always prefer the CLI inventory for discovery.

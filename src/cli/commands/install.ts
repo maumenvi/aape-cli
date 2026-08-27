@@ -38,7 +38,7 @@ export const installCommand: CommandHandler = async (args, { store }) => {
   const kind = normalizeKind(positional[0] ?? '');
   const name = positional[1];
   if (!name) {
-    throw new Error(`Usage: aape i ${kind} <name> [--version <range>] [--source <alias>]`);
+    throw new Error(`Usage: maia i ${kind} <name> [--version <range>] [--source <alias>]`);
   }
 
   const version = flags.version ?? '*';

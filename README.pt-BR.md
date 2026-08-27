@@ -1,13 +1,13 @@
-# Aape
+# Maia
 
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D26.0.0-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 
 [English](./README.md) | Português
 
-O Aape é a forma mais rápida de transformar o uso de agentes em um fluxo repetível e pronto para produção.
+O Maia é a forma mais rápida de transformar o uso de agentes em um fluxo repetível e pronto para produção.
 
-Em vez de configurar cada cliente manualmente, procurar arquivos de configuração, duplicar integrações e manter setups isolados para Claude, Copilot, Cursor, Zed, Cline e Continue, o Aape oferece uma camada única de controle para descobrir, instalar e expor skills, MCPs e tools dentro do seu projeto.
+Em vez de configurar cada cliente manualmente, procurar arquivos de configuração, duplicar integrações e manter setups isolados para Claude, Copilot, Cursor, Zed, Cline e Continue, o Maia oferece uma camada única de controle para descobrir, instalar e expor skills, MCPs e tools dentro do seu projeto.
 
 Com poucos comandos, você pode:
 
@@ -17,13 +17,13 @@ Com poucos comandos, você pode:
 - conectar um ou vários agentes ao mesmo projeto;
 - reduzir a fricção de setup e acelerar a adoção de AI no time.
 
-Se a ideia for ter um hub operacional único para capacidades de agentes, com configuração reproduzível, onboarding mais rápido e integração prática com os principais clientes do mercado, o Aape foi feito para isso.
+Se a ideia for ter um hub operacional único para capacidades de agentes, com configuração reproduzível, onboarding mais rápido e integração prática com os principais clientes do mercado, o Maia foi feito para isso.
 
-## Por que usar o Aape?
+## Por que usar o Maia?
 
 Porque trabalhar com agentes em projetos reais não deveria significar configurar cada cliente manualmente, duplicar integrações e manter várias fontes de verdade.
 
-O Aape resolve isso ao oferecer:
+O Maia resolve isso ao oferecer:
 
 - um único fluxo para instalar e organizar skills, MCPs e tools;
 - um MCP server central para expor as capacidades instaladas;
@@ -31,11 +31,11 @@ O Aape resolve isso ao oferecer:
 - onboarding mais rápido para times inteiros;
 - uma base mais previsível, reproduzível e escalável para desenvolvimento com AI.
 
-Na prática, o Aape encurta o caminho entre "quero usar esse agente no meu projeto" e "o agente já está operando com as capacidades certas".
+Na prática, o Maia encurta o caminho entre "quero usar esse agente no meu projeto" e "o agente já está operando com as capacidades certas".
 
 ## CLI-only por design
 
-O Aape tem um objetivo único: tornar o setup de capacidades para agentes algo operacional, reproduzível e compartilhável a partir do terminal.
+O Maia tem um objetivo único: tornar o setup de capacidades para agentes algo operacional, reproduzível e compartilhável a partir do terminal.
 
 Isso significa que este repositório é centrado em:
 
@@ -48,7 +48,7 @@ Se uma funcionalidade não apoiar diretamente esse fluxo de CLI, ela não deve e
 
 ## Casos de uso
 
-O Aape é útil em cenários como:
+O Maia é útil em cenários como:
 
 - times que querem padronizar o uso de agentes entre Claude, Copilot, Cursor e outros clientes;
 - projetos que precisam distribuir o mesmo conjunto de skills e MCPs para vários desenvolvedores;
@@ -56,9 +56,9 @@ O Aape é útil em cenários como:
 - laboratórios e times de produto que querem comparar rapidamente diferentes agentes sobre a mesma base operacional;
 - organizações que precisam de um ponto central para governar capacidades, acesso e integrações de AI.
 
-## Comparação: setup manual vs Aape
+## Comparação: setup manual vs Maia
 
-### Sem Aape
+### Sem Maia
 
 - cada agente precisa ser configurado separadamente;
 - os arquivos de MCP ficam espalhados pelo ambiente;
@@ -66,7 +66,7 @@ O Aape é útil em cenários como:
 - a consistência entre ambientes diminui;
 - a manutenção de skills, tools e MCPs vira custo operacional.
 
-### Com Aape
+### Com Maia
 
 - um único fluxo instala e organiza capacidades;
 - um único MCP server expõe tudo para os agentes;
@@ -98,24 +98,24 @@ O Aape é útil em cenários como:
 ## Instalação
 
 ```bash
-npm install -g @maumenvi/aape-cli
+npm install -g @maumenvi/maia-cli
 ```
 
-O comando legado `aape` continua funcionando como alias para compatibilidade.
+O comando da CLI agora e `maia`.
 
 ## Uso básico
 
 ```bash
-aape init
-aape init claude
-aape init claude vscode
-aape add claude vscode
-aape list-tools
-aape list-tools react
-aape skills find react
-aape mcp find filesystem
-aape lock
-aape verify
+maia init
+maia init claude
+maia init claude vscode
+maia add claude vscode
+maia list-tools
+maia list-tools react
+maia skills find react
+maia mcp find filesystem
+maia lock
+maia verify
 ```
 
 ## Getting Started (CLI)
@@ -123,27 +123,27 @@ aape verify
 Fluxo rápido:
 
 ```bash
-aape init
-aape init copilot
-aape init claude copilot
-aape add agent claude copilot
-aape list-tools
-aape skills find react
-aape mcp find filesystem
-aape lock
-aape verify
+maia init
+maia init copilot
+maia init claude copilot
+maia add agent claude copilot
+maia list-tools
+maia skills find react
+maia mcp find filesystem
+maia lock
+maia verify
 ```
 
 Resultado típico:
 
-- o projeto recebe as pastas de capacidades do Aape;
+- o projeto recebe as pastas de capacidades do Maia;
 - um ou vários agentes passam a consumir o mesmo endpoint MCP;
 - skills, MCPs e tools instalados ficam mais fáceis de versionar, compartilhar e reproduzir.
 
 Atualizar o CLI local neste repositório:
 
 ```bash
-aape-update-local /home/marco/Documentos/projetos/aape-cli
+maia-update-local /home/marco/Documentos/projetos/maia-cli
 ```
 
 ## Catálogos e credenciais
@@ -158,8 +158,8 @@ O CLI pode descobrir skills por meio de:
 Comportamento de resiliência:
 
 - usa o identificador canônico para instalar uma skill;
-- se uma entrada estiver stale ou indisponível, `aape skills add <query>` tenta automaticamente o próximo resultado;
-- em `aape skills find`, você pode selecionar outra opção se a origem escolhida falhar.
+- se uma entrada estiver stale ou indisponível, `maia skills add <query>` tenta automaticamente o próximo resultado;
+- em `maia skills find`, você pode selecionar outra opção se a origem escolhida falhar.
 
 ### MCP
 
@@ -169,27 +169,29 @@ As entradas de MCP são descobertas a partir do registro configurado (`provider:
 
 ### Credenciais MCP
 
-Em `aape mcp find`:
+Em `maia mcp find`:
 
 - mostra `Requer chave/token: ...`;
 - mostra `Onde obter: ...` quando o metadata do registry inclui descrição ou URL.
 
-Em `aape mcp add` (ou instalação por seleção no `find`):
+Em `maia mcp add` (ou instalação por seleção no `find`):
 
 - detecta as variáveis necessárias;
 - pede os valores no terminal interativo;
-- cria ou atualiza o arquivo `.env.aape` do projeto sem sobrescrever o `.env` real do projeto.
+- cria ou atualiza o `.env.maia` do projeto apenas com as variáveis referenciadas pelos MCPs instalados;
+- preserva entradas customizadas e remove defaults auto-gerados obsoletos dos templates antigos;
+- recompõe essas variáveis de MCP durante `maia install` e `maia ci` a partir do `source.lock`, sem sobrescrever o `.env` real do projeto.
 
 ## Referência de comandos
 
 ### Bootstrap do catálogo
 
 ```bash
-aape init [agent...]
-aape add <agent...>
-aape add agent <agent...>
-aape source add <alias> <repo-url> [--ref <ref>] [--trusted true|false]
-aape source ls
+maia init [agent...]
+maia add <agent...>
+maia add agent <agent...>
+maia source add <alias> <repo-url> [--ref <ref>] [--trusted true|false]
+maia source ls
 ```
 
 Agentes suportados:
@@ -208,50 +210,50 @@ Agentes suportados:
 Você pode configurar vários agentes ao mesmo tempo:
 
 ```bash
-aape init claude vscode
-aape add claude copilot
-aape add agent claude cursor zed
+maia init claude vscode
+maia add claude copilot
+maia add agent claude cursor zed
 ```
 
 ### Skills
 
 ```bash
-aape skills find <query>
-aape skills add <skill-name|owner/repo@skill>
+maia skills find <query>
+maia skills add <skill-name|owner/repo@skill>
 ```
 
 ### MCP
 
 ```bash
-aape mcp find <query>
-aape mcp add <name>
-aape mcp sync
+maia mcp find <query>
+maia mcp add <name>
+maia mcp sync
 ```
 
 ### Instalação estilo npm
 
 ```bash
-aape i skill <name> [--version <range>] [--source <alias>] [--llms <id1,id2>] [--all-llms]
-aape i mcp <name> [--source <alias>] [--transport <stdio|npx|http|sse|ws>] [...]
-aape i tool <name> [--version <range>] [--source <alias>] [--llms <id1,id2>] [--all-llms]
+maia i skill <name> [--version <range>] [--source <alias>] [--llms <id1,id2>] [--all-llms]
+maia i mcp <name> [--source <alias>] [--transport <stdio|npx|http|sse|ws>] [...]
+maia i tool <name> [--version <range>] [--source <alias>] [--llms <id1,id2>] [--all-llms]
 ```
 
 ### Lock e contexto
 
 ```bash
-aape lock
-aape verify
-aape ci
-aape context build
-aape context show --for dev
-aape context show --for llm
+maia lock
+maia verify
+maia ci
+maia context build
+maia context show --for dev
+maia context show --for llm
 ```
 
 ### Outros comandos
 
 ```bash
-aape ls [skill|mcp|tool]
-aape list-tools [query]
-aape rm <skill|mcp|tool> <name>
-aape version
+maia ls [skill|mcp|tool]
+maia list-tools [query]
+maia rm <skill|mcp|tool> <name>
+maia version
 ```

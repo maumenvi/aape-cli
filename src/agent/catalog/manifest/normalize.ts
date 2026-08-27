@@ -1,9 +1,14 @@
 import type { SourcesManifest } from '../types/index.ts';
 import { createDefaultManifest } from './defaults.ts';
 
-export const normalizeManifest = (parsed: Partial<SourcesManifest>): SourcesManifest => ({
+type LegacySourcesManifest = Partial<SourcesManifest> & {
+  aapeVersion?: string;
+};
+
+export const normalizeManifest = (parsed: LegacySourcesManifest): SourcesManifest => ({
   ...createDefaultManifest(),
   ...parsed,
+  ...(parsed.aapeVersion && !parsed.maiaVersion ? { maiaVersion: parsed.aapeVersion } : {}),
   config: {
     ...createDefaultManifest().config,
     ...(parsed.config ?? {}),

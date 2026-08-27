@@ -7,7 +7,7 @@ export const mcpServerCommand: CommandHandler = async (args, { store }) => {
   const dynamic = flags.dynamic === 'true' || flags.dynamic === '1';
 
   const server = createMcpStdioServer(store, {
-    name: flags.name ?? 'aape-mcp-server',
+    name: flags.name ?? 'maia-mcp-server',
     version: flags.version ?? '1.0.0',
     dynamicDiscovery: dynamic,
   });

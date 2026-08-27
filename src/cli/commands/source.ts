@@ -8,7 +8,7 @@ export const sourceCommand: CommandHandler = async (args, { store }) => {
     const repo = args[2];
     const { flags } = parseFlags(args.slice(3));
     if (!alias || !repo) {
-      throw new Error('Usage: aape source add <alias> <repo-url> [--ref <ref>] [--trusted true|false]');
+      throw new Error('Usage: maia source add <alias> <repo-url> [--ref <ref>] [--trusted true|false]');
     }
     store.addSource(alias, {
       type: 'git',
@@ -30,5 +30,5 @@ export const sourceCommand: CommandHandler = async (args, { store }) => {
     return;
   }
 
-  throw new Error('Usage: aape source add|ls ...');
+  throw new Error('Usage: maia source add|ls ...');
 };

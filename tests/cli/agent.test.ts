@@ -15,7 +15,7 @@ describe('CLI agent/init', () => {
   });
 
   it('keeps every supported agent on local project paths', () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-local-agent-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-local-agent-'));
 
     try {
       for (const agent of agentRegistry) {
@@ -29,8 +29,8 @@ describe('CLI agent/init', () => {
   });
 
   it('skips global agent config injection in local-only mode', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-agent-add-'));
-    const tempHome = mkdtempSync(path.join(os.tmpdir(), 'aape-agent-home-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-agent-add-'));
+    const tempHome = mkdtempSync(path.join(os.tmpdir(), 'maia-agent-home-'));
     const originalCwd = process.cwd();
     const originalHome = process.env.HOME;
 
@@ -54,8 +54,8 @@ describe('CLI agent/init', () => {
   });
 
   it('initializes workspace folders and keeps agent guidance local', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-init-agent-'));
-    const tempHome = mkdtempSync(path.join(os.tmpdir(), 'aape-init-home-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-init-agent-'));
+    const tempHome = mkdtempSync(path.join(os.tmpdir(), 'maia-init-home-'));
     const originalCwd = process.cwd();
     const originalHome = process.env.HOME;
 
@@ -89,7 +89,7 @@ describe('CLI agent/init', () => {
   });
 
   it('persists selected agents to the project manifest when -save is used', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-agent-save-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-agent-save-'));
     const originalCwd = process.cwd();
     const store = new AgentCatalogStore({ cwd: tempDir });
 
@@ -111,7 +111,7 @@ describe('CLI agent/init', () => {
   });
 
   it('re-applies saved agents when install runs without arguments', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-install-saved-agent-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-install-saved-agent-'));
     const originalCwd = process.cwd();
     const store = new AgentCatalogStore({ cwd: tempDir });
 
@@ -128,7 +128,7 @@ describe('CLI agent/init', () => {
       assert.ok(existsSync(codexConfig));
       const contents = readFileSync(codexConfig, 'utf8');
       assert.match(contents, /\[mcp_servers\]/);
-      assert.match(contents, /aape\s*=\s*\{/);
+      assert.match(contents, /maia\s*=\s*\{/);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });
@@ -136,7 +136,7 @@ describe('CLI agent/init', () => {
   });
 
   it('re-applies saved agents during CI verification', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-ci-saved-agent-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-ci-saved-agent-'));
     const originalCwd = process.cwd();
     const store = new AgentCatalogStore({ cwd: tempDir });
 
@@ -152,7 +152,7 @@ describe('CLI agent/init', () => {
 
       assert.ok(existsSync(config));
       const contents = readFileSync(config, 'utf8');
-      assert.match(contents, /"aape"/);
+      assert.match(contents, /"maia"/);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });
@@ -160,7 +160,7 @@ describe('CLI agent/init', () => {
   });
 
   it('creates Codex config on init when Codex is selected', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-codex-init-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-codex-init-'));
     const originalCwd = process.cwd();
 
     try {
@@ -177,8 +177,8 @@ describe('CLI agent/init', () => {
   });
 
   it('does not write Codex global TOML in local-only mode', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-codex-agent-'));
-    const tempHome = mkdtempSync(path.join(os.tmpdir(), 'aape-codex-home-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-codex-agent-'));
+    const tempHome = mkdtempSync(path.join(os.tmpdir(), 'maia-codex-home-'));
     const originalCwd = process.cwd();
     const originalHome = process.env.HOME;
 
@@ -195,7 +195,7 @@ describe('CLI agent/init', () => {
       assert.ok(existsSync(existing));
       const contents = readFileSync(existing, 'utf8');
       assert.match(contents, /existing = \{ command = "old", args = \["x"\] \}/);
-      assert.doesNotMatch(contents, /aape\s*=\s*\{/);
+      assert.doesNotMatch(contents, /maia\s*=\s*\{/);
     } finally {
       process.chdir(originalCwd);
       process.env.HOME = originalHome;
@@ -205,7 +205,7 @@ describe('CLI agent/init', () => {
   });
 
   it('keeps Codex config idempotent across repeated init runs', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-codex-idempotent-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-codex-idempotent-'));
     const originalCwd = process.cwd();
 
     try {
@@ -215,8 +215,8 @@ describe('CLI agent/init', () => {
       await initCommand(['codex'], { store: new AgentCatalogStore({ cwd: tempDir }) });
 
       const contents = readFileSync(path.resolve(tempDir, '.codex', 'config.toml'), 'utf8');
-      assert.equal((contents.match(/aape\s*=\s*\{/g) ?? []).length, 1);
-      assert.doesNotMatch(contents, /aape\s*=\s*\{\s*aape\s*=\s*\{/);
+      assert.equal((contents.match(/maia\s*=\s*\{/g) ?? []).length, 1);
+      assert.doesNotMatch(contents, /maia\s*=\s*\{\s*maia\s*=\s*\{/);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });

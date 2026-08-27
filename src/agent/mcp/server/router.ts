@@ -31,7 +31,7 @@ export async function routeToolCall(
   if (!pkg) {
     return {
       isError: true,
-      content: [{ type: 'text', text: `Tool "${toolName}" not found in aape catalog.` }],
+      content: [{ type: 'text', text: `Tool "${toolName}" not found in maia catalog.` }],
     };
   }
 

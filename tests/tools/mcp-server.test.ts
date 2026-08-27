@@ -15,7 +15,7 @@ async function invoke(server: McpStdioServer, request: JsonRpcRequest): Promise<
 
 describe('McpStdioServer', () => {
   it('initializes, lists proxied MCP tools, and calls them', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-mcp-server-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-server-'));
     const fixturePath = fileURLToPath(new URL('../fixtures/mcp/mock-stdio-server.mjs', import.meta.url));
 
     try {

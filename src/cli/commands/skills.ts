@@ -61,7 +61,7 @@ function orderedByBestMatch(results: CatalogSearchResult[], target: string): Cat
 
 export async function runSkillsCli(
   args: string[],
-  _spawnFn: SpawnFn = (() => { throw new Error('npx is not used by aape skills'); }) as SpawnFn,
+  _spawnFn: SpawnFn = (() => { throw new Error('npx is not used by maia skills'); }) as SpawnFn,
   _quiet = false,
   context?: { store: AgentCatalogStore },
 ): Promise<number> {
@@ -98,7 +98,7 @@ export async function runSkillsCli(
   if (command === 'add' || command === 'install') {
     const target = rest[0];
     if (!target) {
-      throw new Error('Usage: aape skills add <skill-name|owner/repo@skill>');
+      throw new Error('Usage: maia skills add <skill-name|owner/repo@skill>');
     }
     const direct = directGitHubResult(store, target);
     if (direct) {
@@ -133,7 +133,7 @@ export async function runSkillsCli(
     return 0;
   }
 
-  throw new Error('Usage: aape skills find <query> | aape skills add <skill-name|owner/repo@skill>');
+  throw new Error('Usage: maia skills find <query> | maia skills add <skill-name|owner/repo@skill>');
 }
 
 export const skillsCommand: CommandHandler = async (args, context) => {

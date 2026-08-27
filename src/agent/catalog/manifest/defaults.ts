@@ -5,7 +5,7 @@ import type { SourcesManifest } from '../types/index.ts';
 export const createDefaultManifest = (): SourcesManifest => ({
   name: path.basename(process.cwd()),
   version: '0.1.0',
-  aapeVersion: '^1.0.0',
+  maiaVersion: '^1.0.0',
   config: {
     registryStrategy: 'hybrid',
     strictVerify: true,
@@ -24,7 +24,7 @@ export const createDefaultManifest = (): SourcesManifest => ({
   sources: {
     local: {
       type: 'git',
-      url: 'https://github.com/maumenvi/aape.git',
+      url: 'https://github.com/maumenvi/maia.git',
       ref: 'master',
       trusted: true,
     },

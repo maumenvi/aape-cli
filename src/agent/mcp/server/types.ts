@@ -17,6 +17,6 @@ export interface McpToolEntry {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
-  /** which aape package owns this tool: 'mcp:<server>', 'skill:<name>', 'tool:<name>' */
+  /** which maia package owns this tool: 'mcp:<server>', 'skill:<name>', 'tool:<name>' */
   origin: string;
 }

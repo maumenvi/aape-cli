@@ -14,7 +14,7 @@ export class JsonRpcMcpClient implements McpClient {
       protocolVersion: '2024-11-05',
       capabilities: {},
       clientInfo: {
-        name: 'aape',
+        name: 'maia',
         version: '1.3.2',
       },
     }, options);

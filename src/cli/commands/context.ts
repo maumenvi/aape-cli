@@ -6,7 +6,7 @@ export const contextCommand: CommandHandler = async (args, { store }) => {
   const action = args[0] ?? 'build';
   if (action === 'build') {
     store.buildContexts();
-    console.log('Generated .aape/context.dev.json and .aape/context.llm.json');
+    console.log('Generated .maia/context.dev.json and .maia/context.llm.json');
     return;
   }
 

@@ -72,7 +72,7 @@ function githubSkillsSearchResponse(): Response {
 
 describe('CLI skills', () => {
   it('discovers skills through the external skills.sh provider', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-skills-discover-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-discover-'));
     const originalFetch = globalThis.fetch;
     try {
       globalThis.fetch = async (input: RequestInfo | URL) => {
@@ -91,7 +91,7 @@ describe('CLI skills', () => {
   });
 
   it('resolves the GitHub commit and installs without calling npx', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-skills-install-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-install-'));
     const originalFetch = globalThis.fetch;
     try {
       globalThis.fetch = async (input: RequestInfo | URL) => {
@@ -111,7 +111,7 @@ describe('CLI skills', () => {
 
       const store = new AgentCatalogStore({ cwd: tempDir });
       const spawnFn = () => {
-        throw new Error('npx should not be used in aape skills');
+        throw new Error('npx should not be used in maia skills');
       };
       const code = await runSkillsCli(['add', 'find-skills'], spawnFn, false, { store });
 
@@ -127,7 +127,7 @@ describe('CLI skills', () => {
   });
 
   it('installs a skill when skills.sh display name contains spaces', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-skills-display-name-space-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-display-name-space-'));
     const originalFetch = globalThis.fetch;
     try {
       globalThis.fetch = async (input: RequestInfo | URL) => {
@@ -151,7 +151,7 @@ describe('CLI skills', () => {
       assert.equal(results[0]?.displayName, 'sqlite database expert');
 
       const code = await runSkillsCli(['add', 'sqlite'], () => {
-        throw new Error('npx should not be used in aape skills');
+        throw new Error('npx should not be used in maia skills');
       }, false, { store });
 
       assert.equal(code, 0);
@@ -163,7 +163,7 @@ describe('CLI skills', () => {
   });
 
   it('falls back to the next catalog entry when the best match is stale', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-skills-stale-fallback-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-stale-fallback-'));
     const originalFetch = globalThis.fetch;
     try {
       globalThis.fetch = async (input: RequestInfo | URL) => {
@@ -195,7 +195,7 @@ describe('CLI skills', () => {
 
       const store = new AgentCatalogStore({ cwd: tempDir });
       const code = await runSkillsCli(['add', 'sqlite'], () => {
-        throw new Error('npx should not be used in aape skills');
+        throw new Error('npx should not be used in maia skills');
       }, false, { store });
 
       assert.equal(code, 0);
@@ -207,7 +207,7 @@ describe('CLI skills', () => {
   });
 
   it('discovers and installs through a github-skills registry', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-skills-github-registry-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-github-registry-'));
     const originalFetch = globalThis.fetch;
     try {
       globalThis.fetch = async (input: RequestInfo | URL) => {
@@ -245,7 +245,7 @@ describe('CLI skills', () => {
       assert.equal(discovered[0]?.provider, 'skillsGitHub');
 
       const code = await runSkillsCli(['add', 'vercel-labs/skills@find-skills'], () => {
-        throw new Error('npx should not be used in aape skills');
+        throw new Error('npx should not be used in maia skills');
       }, false, { store });
 
       assert.equal(code, 0);

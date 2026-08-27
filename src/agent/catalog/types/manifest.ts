@@ -16,7 +16,7 @@ export interface AgentManifestEntry {
 export interface SourcesManifest {
   name: string;
   version: string;
-  aapeVersion: string;
+  maiaVersion: string;
   config: {
     registryStrategy: 'hybrid';
     strictVerify: boolean;

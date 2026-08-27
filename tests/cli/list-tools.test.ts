@@ -8,7 +8,7 @@ import { listToolsCommand } from '../../src/cli/commands/list-tools.ts';
 
 describe('CLI list-tools', () => {
   it('prints local capability inventory without remote discovery', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-list-tools-local-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-list-tools-local-'));
     const output: string[] = [];
     const originalLog = console.log;
     try {
@@ -32,18 +32,18 @@ describe('CLI list-tools', () => {
     }
 
     const rendered = output.join('\n');
-    assert.match(rendered, /Aape capability discovery/);
+    assert.match(rendered, /Maia capability discovery/);
     assert.match(rendered, /Configured registries/);
     assert.match(rendered, /Installed entries/);
     assert.match(rendered, /tool:read_file@1\.0\.0 source=local/);
     assert.match(rendered, /Local registry \(skills\)/);
     assert.match(rendered, /Local registry \(tools\)/);
     assert.match(rendered, /Local registry \(mcps\)/);
-    assert.match(rendered, /aape list-tools <query>/);
+    assert.match(rendered, /maia list-tools <query>/);
   });
 
   it('discovers skills and MCPs from configured catalogs with a query', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-list-tools-remote-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-list-tools-remote-'));
     const output: string[] = [];
     const originalLog = console.log;
     const originalFetch = globalThis.fetch;
@@ -102,7 +102,7 @@ describe('CLI list-tools', () => {
   });
 
   it('supports structured JSON output for agent clients', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-list-tools-json-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-list-tools-json-'));
     const output: string[] = [];
     const originalLog = console.log;
     const originalFetch = globalThis.fetch;
@@ -162,7 +162,7 @@ describe('CLI list-tools', () => {
   });
 
   it('supports list-capabilities as unified discovery output', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-list-capabilities-json-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-list-capabilities-json-'));
     const output: string[] = [];
     const originalLog = console.log;
     const originalFetch = globalThis.fetch;

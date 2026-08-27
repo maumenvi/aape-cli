@@ -8,7 +8,7 @@ export const removeCommand: CommandHandler = async (args, { store }) => {
   const kind = normalizeKind(args[0] ?? '');
   const name = args[1];
   if (!name) {
-    throw new Error(`Usage: aape rm ${kind} <name>`);
+    throw new Error(`Usage: maia rm ${kind} <name>`);
   }
 
   const manifest = store.loadManifest();

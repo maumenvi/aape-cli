@@ -27,7 +27,7 @@ export interface AgentTarget {
   configPaths(cwd: string): string[];
   /**
    * Build the MCP entry that should be injected for this agent.
-   * `cwd` is the project directory where `aape mcp-server` will run.
+   * `cwd` is the project directory where `maia mcp-server` will run.
    */
   buildEntry(cwd: string): AgentMcpEntry;
 }

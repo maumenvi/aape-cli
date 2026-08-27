@@ -80,7 +80,7 @@ export const listToolsCommand: CommandHandler = async (args, { store }) => {
       installed,
       local,
       discovered: { skills: [] as string[], mcps: [] as string[] },
-      tip: 'aape list-tools <query>',
+      tip: 'maia list-tools <query>',
     };
 
     if (query) {
@@ -98,7 +98,7 @@ export const listToolsCommand: CommandHandler = async (args, { store }) => {
     return;
   }
 
-  console.log('Aape capability discovery');
+  console.log('Maia capability discovery');
 
   printSection('Configured registries');
   printLines(registries);
@@ -116,7 +116,7 @@ export const listToolsCommand: CommandHandler = async (args, { store }) => {
   printLines(local.mcps);
 
   if (!query) {
-    console.log('\nTip: run `aape list-tools <query>` to also discover skills and MCPs from configured catalogs.');
+    console.log('\nTip: run `maia list-tools <query>` to also discover skills and MCPs from configured catalogs.');
     return;
   }
 

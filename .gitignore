@@ -4,6 +4,6 @@ dist/
 .env
 .env.*
 !.env.example
-!.env.aape.example
+!.env.maia.example
 .sources
 .source.*

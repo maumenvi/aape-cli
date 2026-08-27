@@ -5,6 +5,7 @@ import { resolveRuntimeModulePath } from '../../agent/catalog/registry/index.ts'
 import type { LockPackage, SourceLock } from '../../agent/catalog/types/index.ts';
 import type { AgentCatalogStore } from '../../agent/catalog/store.ts';
 import type { CatalogSource } from '../../agent/catalog/types/index.ts';
+import { ensureLockMcpEnvFileEntries } from '../install/mcp-credentials.ts';
 import { fetchRemoteSkillMarkdown } from './remote-skill.ts';
 
 export { fetchRemoteSkillMarkdown } from './remote-skill.ts';
@@ -87,6 +88,7 @@ export async function reinstallFromLock(store: Pick<AgentCatalogStore, 'getPaths
         return materializeSkillFromLock(store, pkg);
       }),
   );
+  ensureLockMcpEnvFileEntries(store, lock);
   const { file: vscodeMcp } = syncVsCodeMcpConfig(store.getPaths(), lock);
   return { skills, vscodeMcp };
 }

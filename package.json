@@ -1,11 +1,11 @@
 {
-  "name": "@maumenvi/aape-cli",
-  "version": "1.6.2",
+  "name": "@maumenvi/maia-cli",
+  "version": "1.6.3",
   "description": "CLI for cataloging and installing skills, MCPs, and tools for AI agents",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "aape": "dist/src/cli/index.js"
+    "maia": "dist/src/cli/index.js"
   },
   "exports": {
     "./package.json": "./package.json"
@@ -27,15 +27,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/maumenvi/aape-cli.git"
+    "url": "git+https://github.com/maumenvi/maia-cli.git"
   },
-  "homepage": "https://github.com/maumenvi/aape-cli",
+  "homepage": "https://github.com/maumenvi/maia-cli",
   "bugs": {
-    "url": "https://github.com/maumenvi/aape-cli/issues"
+    "url": "https://github.com/maumenvi/maia-cli/issues"
   },
   "scripts": {
     "dev": "node src/cli/index.ts",
-    "aape": "node src/cli/index.ts",
+    "maia": "node src/cli/index.ts",
     "build:publish": "node scripts/build-publish.mjs",
     "prepack": "npm run build:publish",
     "test": "node scripts/run-tests.mjs",

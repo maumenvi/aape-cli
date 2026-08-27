@@ -4,8 +4,8 @@ import type { AgentMcpEntry, AgentTarget } from './types.ts';
 
 function mcpEntry(cwd: string): AgentMcpEntry {
   return {
-    key: 'aape',
-    config: { command: 'aape', args: ['mcp-server'], cwd },
+    key: 'maia',
+    config: { command: 'maia', args: ['mcp-server'], cwd },
   };
 }
 

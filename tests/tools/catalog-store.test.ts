@@ -7,7 +7,7 @@ import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
 
 describe('AgentCatalogStore', () => {
   it('creates sources and source.lock from dependencies', () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-catalog-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-catalog-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveManifest(store.loadManifest());
@@ -48,7 +48,7 @@ describe('AgentCatalogStore', () => {
   });
 
   it('builds dev and llm context files and syncs vscode mcp config', () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-context-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-context-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveManifest(store.loadManifest());
@@ -86,7 +86,7 @@ describe('AgentCatalogStore', () => {
   });
 
   it('applies deny-by-default policy for resources without allowedLlms', () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-access-default-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-access-default-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveManifest(store.loadManifest());

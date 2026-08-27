@@ -1,13 +1,16 @@
+import { spawnSync } from 'node:child_process';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
 import { installCommand } from '../../src/cli/commands/install.ts';
 import { removeCommand } from '../../src/cli/commands/remove.ts';
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567';
+const cliEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../src/cli/index.ts');
 const SKILL_MARKDOWN = `---
 name: find-skills
 description: Finds external skills.
@@ -18,7 +21,7 @@ description: Finds external skills.
 
 describe('CLI install/remove', () => {
   it('bootstraps source.lock when called without a dependency type', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-bootstrap-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-bootstrap-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveManifest(store.loadManifest());
@@ -32,7 +35,7 @@ describe('CLI install/remove', () => {
   });
 
   it('creates source.lock and bootstraps the workspace on a fresh install', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-fresh-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-fresh-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
       await installCommand(['mcp', 'github', '--transport', 'npx', '--package', '@modelcontextprotocol/server-github'], { store });
@@ -48,7 +51,7 @@ describe('CLI install/remove', () => {
   });
 
   it('materializes remote skills deterministically and syncs MCPs into .vscode/mcp.json', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-cli-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-cli-'));
     const originalFetch = globalThis.fetch;
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
@@ -91,6 +94,43 @@ describe('CLI install/remove', () => {
       assert.ok(!existsSync(path.resolve(tempDir, skillPackage?.path ?? '')));
     } finally {
       globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('supports the i alias with the same .env.maia rebuild behavior', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-install-alias-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      await installCommand([
+        'mcp',
+        'context7fork',
+        '--transport',
+        'http',
+        '--url',
+        'https://server.smithery.ai/@renCosta2025/context7fork/mcp',
+        '--headers',
+        JSON.stringify({
+          Authorization: '${env:RENCOSTA2025_CONTEXT7FORK_AUTHORIZATION}',
+        }),
+      ], { store });
+
+      const envFile = path.resolve(tempDir, '.env.maia');
+      writeFileSync(envFile, 'SKILLS_REGISTRY_URL=https://skills.sh\nNODE_ENV=development\n', 'utf8');
+
+      const result = spawnSync(process.execPath, [cliEntry, 'i'], {
+        cwd: tempDir,
+        encoding: 'utf8',
+        env: process.env,
+      });
+
+      assert.equal(result.status, 0, result.stderr);
+
+      const content = readFileSync(envFile, 'utf8');
+      assert.match(content, /^RENCOSTA2025_CONTEXT7FORK_AUTHORIZATION=""/m);
+      assert.doesNotMatch(content, /^SKILLS_REGISTRY_URL=https:\/\/skills\.sh$/m);
+      assert.doesNotMatch(content, /^NODE_ENV=development$/m);
+    } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });

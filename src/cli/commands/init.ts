@@ -6,19 +6,19 @@ import type { AgentCatalogStore } from '../../agent/catalog/store.ts';
 import { ensureProjectDotEnv } from '../../config/index.ts';
 import type { CommandHandler } from '../types.ts';
 
-const AGENT_GUIDANCE_MARKER = '<!-- aape-capability-discovery -->';
+const AGENT_GUIDANCE_MARKER = '<!-- maia-capability-discovery -->';
 const AGENT_GUIDANCE_TEXT = `
 ${AGENT_GUIDANCE_MARKER}
-## Aape capability discovery
+## Maia capability discovery
 
-Use the Aape CLI as the authoritative source of truth for skills, tools, and MCP servers.
+Use the Maia CLI as the authoritative source of truth for skills, tools, and MCP servers.
 
 Before assuming a capability exists, query it with:
 
 \`\`\`bash
- aape list-capabilities --json
- aape list-tools --json
- aape list-skills --json
+ maia list-capabilities --json
+ maia list-tools --json
+ maia list-skills --json
 \`\`\`
 
 The project may register capabilities in the manifest while the active agent runtime only exposes a subset. Always prefer the CLI inventory for discovery.
@@ -143,7 +143,7 @@ function ensureAgentGuidanceFile(targetPath: string): void {
 
 export function ensureInitialized(store: AgentCatalogStore): void {
   const root = path.dirname(store.getPaths().manifest);
-  ensureProjectDotEnv(path.resolve(root, '.env.aape'));
+  ensureProjectDotEnv(path.resolve(root, '.env.maia'));
 
   const manifest = store.loadManifest();
   store.saveManifest(manifest);
@@ -177,7 +177,7 @@ export function restoreConfiguredAgents(store: AgentCatalogStore): void {
     const { created, updated, configPath: finalPath } = injectAgentConfig(target, cwd, configPath);
     const action = created ? 'Created' : updated ? 'Updated' : 'No change in';
     console.log(`${action} ${target.name} config: ${finalPath}`);
-    console.log(`aape mcp-server registered as "aape" in ${target.name}.`);
+    console.log(`maia mcp-server registered as "maia" in ${target.name}.`);
   }
 }
 
@@ -192,7 +192,7 @@ export const initCommand: CommandHandler = async (args, { store }) => {
     if (save) {
       store.saveSelectedAgents([]);
     }
-    console.log('Initialized aape manifest, lockfile, and agent guidance files');
+    console.log('Initialized maia manifest, lockfile, and agent guidance files');
     return;
   }
 
@@ -212,7 +212,7 @@ export const initCommand: CommandHandler = async (args, { store }) => {
     store.saveSelectedAgents(uniqueTargets.map((target) => target.id));
   }
 
-  console.log('Initialized aape manifest, lockfile, and agent guidance files');
+  console.log('Initialized maia manifest, lockfile, and agent guidance files');
   let applied = false;
   for (const target of uniqueTargets) {
     const configPath = resolveConfigPath(target, cwd);
@@ -224,11 +224,11 @@ export const initCommand: CommandHandler = async (args, { store }) => {
     const { created, updated, configPath: finalPath } = injectAgentConfig(target, cwd, configPath);
     const action = created ? 'Created' : updated ? 'Updated' : 'No change in';
     console.log(`${action} ${target.name} config: ${finalPath}`);
-    console.log(`aape mcp-server registered as "aape" in ${target.name}.`);
+    console.log(`maia mcp-server registered as "maia" in ${target.name}.`);
     applied = true;
   }
 
   if (!applied) {
-    console.log('No global agent config was modified. Aape is configured for local project management only.');
+    console.log('No global agent config was modified. Maia is configured for local project management only.');
   }
 };

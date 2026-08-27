@@ -21,7 +21,7 @@ export function createMcpConfig(name: string, flags: Record<string, string>): MC
   if (transport === 'http' || transport === 'ws' || transport === 'sse') {
     const url = String(flags.url ?? '');
     if (!url) {
-      throw new Error(`Usage for ${transport.toUpperCase()} MCP: aape i mcp <name> --transport ${transport} --url <endpoint>`);
+      throw new Error(`Usage for ${transport.toUpperCase()} MCP: maia i mcp <name> --transport ${transport} --url <endpoint>`);
     }
     return { transport, url, headers: toStringMap(parsedHeaders) };
   }

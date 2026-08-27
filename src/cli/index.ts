@@ -16,6 +16,6 @@ const handler = commandHandlers[effectiveCommand] ?? helpCommand;
 
 handler(args, context).catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`aape: ${message}`);
+  console.error(`maia: ${message}`);
   process.exitCode = 1;
 });

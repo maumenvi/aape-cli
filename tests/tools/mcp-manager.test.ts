@@ -15,7 +15,7 @@ describe('McpManager', () => {
   let flakyFixturePath: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-mcp-manager-'));
+    tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-manager-'));
     fixturePath = fileURLToPath(new URL('../fixtures/mcp/mock-stdio-server.mjs', import.meta.url));
     flakyFixturePath = fileURLToPath(new URL('../fixtures/mcp/mock-flaky-call-server.mjs', import.meta.url));
     const catalog = new AgentCatalogStore({ cwd: tempDir });
@@ -339,8 +339,8 @@ describe('McpManager', () => {
           npxArgs: ['-y'],
           env: {
             PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
-            AAPE_MOCK_MCP_SERVER_PATH: fixturePath,
-            AAPE_CAPTURE_PACKAGE_FILE: invokedPackageFile,
+            MAIA_MOCK_MCP_SERVER_PATH: fixturePath,
+            MAIA_CAPTURE_PACKAGE_FILE: invokedPackageFile,
           },
         },
       });
@@ -427,11 +427,11 @@ if [ "$#" -eq 0 ]; then
   echo "missing npx package argument" >&2
   exit 1
 fi
-if [ -n "\${AAPE_CAPTURE_PACKAGE_FILE:-}" ]; then
-  printf '%s\\n' "$1" > "$AAPE_CAPTURE_PACKAGE_FILE"
+if [ -n "\${MAIA_CAPTURE_PACKAGE_FILE:-}" ]; then
+  printf '%s\\n' "$1" > "$MAIA_CAPTURE_PACKAGE_FILE"
 fi
 shift
-exec node "$AAPE_MOCK_MCP_SERVER_PATH" "$@"
+exec node "$MAIA_MOCK_MCP_SERVER_PATH" "$@"
 `;
 }
 

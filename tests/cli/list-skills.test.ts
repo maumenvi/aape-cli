@@ -8,7 +8,7 @@ import { listSkillsCommand } from '../../src/cli/commands/list-skills.ts';
 
 describe('CLI list-skills', () => {
   it('prints installed and discoverable skills clearly', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aape-list-skills-'));
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-list-skills-'));
     const output: string[] = [];
     const originalLog = console.log;
     try {
@@ -31,9 +31,9 @@ describe('CLI list-skills', () => {
     }
 
     const rendered = output.join('\n');
-    assert.match(rendered, /Aape skill discovery/);
+    assert.match(rendered, /Maia skill discovery/);
     assert.match(rendered, /Installed skills/);
     assert.match(rendered, /skill:find-skills@1\.0\.0 source=local/);
-    assert.match(rendered, /aape list-skills <query>/);
+    assert.match(rendered, /maia list-skills <query>/);
   });
 });

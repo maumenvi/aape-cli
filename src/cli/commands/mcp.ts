@@ -39,7 +39,7 @@ export const mcpCommand: CommandHandler = async (args, { store }) => {
   if (action === 'add' || action === 'install') {
     const query = args.slice(1).join(' ');
     if (!query) {
-      throw new Error('Usage: aape mcp add <name>');
+      throw new Error('Usage: maia mcp add <name>');
     }
     const selected = bestCatalogMatch(await discoverMcpsFromStore(store, query), query);
     if (!selected) {
@@ -50,5 +50,5 @@ export const mcpCommand: CommandHandler = async (args, { store }) => {
     return;
   }
 
-  throw new Error('Usage: aape mcp sync | aape mcp find <query> | aape mcp add <name>');
+  throw new Error('Usage: maia mcp sync | maia mcp find <query> | maia mcp add <name>');
 };

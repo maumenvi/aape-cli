@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 export function resolveContextPaths(manifestPath: string) {
-  const contextDir = path.resolve(path.dirname(manifestPath), '.aape');
+  const contextDir = path.resolve(path.dirname(manifestPath), '.maia');
   return {
     contextDir,
     contextDev: path.resolve(contextDir, 'context.dev.json'),
