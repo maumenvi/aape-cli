@@ -10,17 +10,21 @@ export class JsonRpcMcpClient implements McpClient {
   }
 
   async initialize(options: McpRequestOptions = {}): Promise<McpInitializeResult> {
+    const requestedVersion = negotiateMcpProtocolVersion();
     const result = await this.transport.request<McpInitializeResult>('initialize', {
-      protocolVersion: '2024-11-05',
+      protocolVersion: requestedVersion,
       capabilities: {},
       clientInfo: {
         name: 'maia',
-        version: '1.3.2',
+        version: '1.5.2',
       },
     }, options);
     await this.transport.notify('notifications/initialized', {});
     this.initialized = true;
-    return result;
+    return {
+      ...result,
+      protocolVersion: negotiateMcpProtocolVersion(result?.protocolVersion ?? requestedVersion),
+    };
   }
 
   async listTools(options: McpRequestOptions = {}): Promise<McpListToolsResult> {

@@ -43,9 +43,21 @@ describe('McpStdioServer', () => {
       if (!initialize || !('result' in initialize)) {
         throw new Error('Expected initialize result');
       }
-      assert.equal((initialize.result as { protocolVersion?: string }).protocolVersion, '2024-11-05');
+      assert.equal((initialize.result as { protocolVersion?: string }).protocolVersion, '2025-06-18');
 
-      const toolsList = await invoke(server, { jsonrpc: '2.0', id: 2, method: 'tools/list' });
+      const legacyInitialize = await invoke(server, {
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'initialize',
+        params: { protocolVersion: '2024-11-05' },
+      });
+      assert.ok(legacyInitialize && 'result' in legacyInitialize);
+      if (!legacyInitialize || !('result' in legacyInitialize)) {
+        throw new Error('Expected initialize result for legacy negotiation');
+      }
+      assert.equal((legacyInitialize.result as { protocolVersion?: string }).protocolVersion, '2024-11-05');
+
+      const toolsList = await invoke(server, { jsonrpc: '2.0', id: 3, method: 'tools/list' });
       assert.ok(toolsList && 'result' in toolsList);
       if (!toolsList || !('result' in toolsList)) {
         throw new Error('Expected tools/list result');
@@ -55,7 +67,7 @@ describe('McpStdioServer', () => {
 
       const toolCall = await invoke(server, {
         jsonrpc: '2.0',
-        id: 3,
+        id: 4,
         method: 'tools/call',
         params: { name: 'mock__echo', arguments: { text: 'hello' } },
       });
@@ -65,14 +77,14 @@ describe('McpStdioServer', () => {
       }
       assert.equal((toolCall.result as { content?: Array<{ text?: string }> }).content?.[0]?.text, 'hello');
 
-      const unknown = await invoke(server, { jsonrpc: '2.0', id: 4, method: 'unknown' });
+      const unknown = await invoke(server, { jsonrpc: '2.0', id: 5, method: 'unknown' });
       assert.ok(unknown && 'error' in unknown);
       if (!unknown || !('error' in unknown)) {
         throw new Error('Expected error for unknown method');
       }
       assert.equal(unknown.error.code, -32601);
 
-      await invoke(server, { jsonrpc: '2.0', id: 5, method: 'shutdown' });
+      await invoke(server, { jsonrpc: '2.0', id: 6, method: 'shutdown' });
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }

@@ -30,9 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed false-positive installs for non-existent tools by refusing unknown local registry entries.
 - Fixed `ci` flow ordering so reinstall happens before strict verification; the lock is no longer validated against a missing artifact before rehydration.
 - Fixed workspace containment checks for `read_file` to prevent escaping the project root via absolute paths and symlinks.
+- Fixed MCP protocol negotiation by supporting a version list instead of hardcoding `2024-11-05`, while preserving fallback compatibility with legacy peers.
 
 ### Notes
-- Several production hardening items remain intentionally open and are tracked as follow-up work: visible secret input in MCP onboarding, inherited `process.env` for stdio/NPX MCPs, fixed MCP protocol version negotiation, and version alignment between package metadata and changelog.
+- Several production hardening items remain intentionally open and are tracked as follow-up work: visible secret input in MCP onboarding, inherited `process.env` for stdio/NPX MCPs, and version alignment between package metadata and changelog.
 
 ## [1.5.2] - 2026-08-26
 
