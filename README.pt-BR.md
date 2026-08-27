@@ -97,11 +97,15 @@ O Maia é útil em cenários como:
 
 ## Instalação
 
+Para usar `maia` diretamente no terminal, instale globalmente:
+
 ```bash
 npm install -g @maumenvi/maia-cli
 ```
 
-O comando da CLI agora e `maia`.
+Isso adiciona o comando `maia` ao PATH.
+
+Se você instalar localmente em um projeto, o binário fica em `node_modules/.bin/maia`.
 
 ## Uso básico
 
