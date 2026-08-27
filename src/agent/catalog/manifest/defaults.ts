@@ -1,5 +1,4 @@
 import path from 'node:path';
-import { config } from '../../../config/index.ts';
 import type { SourcesManifest } from '../types/index.ts';
 
 export const createDefaultManifest = (): SourcesManifest => ({
@@ -14,11 +13,11 @@ export const createDefaultManifest = (): SourcesManifest => ({
   registries: {
     skills: {
       provider: 'skills.sh',
-      url: config.catalog.skillsRegistryUrl,
+      url: 'https://skills.sh',
     },
     mcp: {
       provider: 'mcp',
-      url: config.catalog.mcpRegistryUrl,
+      url: 'https://registry.modelcontextprotocol.io',
     },
   },
   sources: {

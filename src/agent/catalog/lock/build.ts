@@ -4,7 +4,7 @@ import { dependencySectionForKind, packageKey } from '../shared/index.ts';
 import type { CatalogKind, SourceLock, SourcesManifest } from '../types/index.ts';
 import { createPackageDescriptor } from './package-descriptor.ts';
 
-export function buildLockFromManifest(manifest: SourcesManifest): SourceLock {
+export function buildLockFromManifest(manifest: SourcesManifest, workspaceRoot = process.cwd()): SourceLock {
   const defaultAccessPolicy = manifest.config.llmAccessDefault;
   const sources: SourceLock['sources'] = {};
   for (const [alias, source] of Object.entries(manifest.sources)) {
@@ -26,7 +26,15 @@ export function buildLockFromManifest(manifest: SourcesManifest): SourceLock {
 
       const sourceInfo = sources[dependency.source];
       const registryEntry = findRegistryEntry(kind, name);
-      const descriptor = createPackageDescriptor(kind, name, dependency, sourceInfo, registryEntry, defaultAccessPolicy);
+      const descriptor = createPackageDescriptor(
+        kind,
+        name,
+        dependency,
+        sourceInfo,
+        registryEntry,
+        defaultAccessPolicy,
+        workspaceRoot,
+      );
       packages[packageKey(kind, name)] = descriptor;
     }
   };

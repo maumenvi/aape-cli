@@ -239,8 +239,7 @@ export class AgentMcpManager {
   }
 
   private isLlmAllowed(llmId: string | undefined, serverName: string, allowedLlms?: string[]): boolean {
-    if (!llmId) return true;
-    const llmPolicy = this.llmAccessPolicies?.getAccessPolicy(llmId);
+    const llmPolicy = llmId ? this.llmAccessPolicies?.getAccessPolicy(llmId) : undefined;
     return canLlmAccessResource(
       llmId,
       'mcp',

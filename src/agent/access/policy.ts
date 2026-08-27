@@ -59,9 +59,11 @@ export function canLlmAccessResource(
   resourceAllowedLlms?: string[],
   defaultPolicy: AccessDefaultPolicy = ACCESS_DEFAULT_ALLOW,
 ): boolean {
-  if (!llmId) return true;
+  const allowedLlms = resolveAllowedLlms(resourceAllowedLlms, defaultPolicy);
+  if (!llmId) {
+    return listAllowsValue(allowedLlms, ACCESS_ALL);
+  }
   const normalizedPolicy = normalizeLlmAccessPolicy(llmPolicy);
   const allowedResources = normalizedPolicy[keyByKind[kind]];
-  const allowedLlms = resolveAllowedLlms(resourceAllowedLlms, defaultPolicy);
   return listAllowsValue(allowedResources, resourceName) && listAllowsValue(allowedLlms, llmId);
 }

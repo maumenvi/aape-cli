@@ -15,6 +15,7 @@ export function createLockIntegrityPayload(pkg: LockPackage) {
     constraints: pkg.constraints,
     allowedLlms: normalizeAccessList(pkg.allowedLlms),
     sourceCommit: pkg.sourceCommit ?? null,
+    artifactHash: pkg.artifactHash ?? null,
     provenance: {
       repo: pkg.provenance.repo,
       ref: pkg.provenance.ref,

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
@@ -40,6 +40,21 @@ describe('CLI list-tools', () => {
     assert.match(rendered, /Local registry \(tools\)/);
     assert.match(rendered, /Local registry \(mcps\)/);
     assert.match(rendered, /maia list-tools <query>/);
+  });
+
+  it('does not create source.lock when only reading discovery data', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-list-tools-readonly-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+
+      await listToolsCommand([], { store });
+
+      assert.equal(existsSync(path.resolve(tempDir, 'source.lock')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.env.maia')), false);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   it('discovers skills and MCPs from configured catalogs with a query', async () => {

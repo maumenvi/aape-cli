@@ -134,4 +134,18 @@ describe('CLI install/remove', () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('refuses tool installs that have no local registry entry', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-tool-install-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+
+      await assert.rejects(
+        () => installCommand(['tool', 'demo'], { store }),
+        /Tool "demo" is not available in the local registry/,
+      );
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });

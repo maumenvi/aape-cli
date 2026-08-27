@@ -62,6 +62,25 @@ export const installCommand: CommandHandler = async (args, { store }) => {
         allowedLlms,
       });
     }
+  } else if (kind === 'tool') {
+    if (explicitSource && explicitSource !== 'local') {
+      throw new Error('Tool installs only support the local registry');
+    }
+    const registryEntry = findRegistryEntry('tool', name);
+    if (!registryEntry) {
+      throw new Error(`Tool "${name}" is not available in the local registry`);
+    }
+    store.addDependency(kind, name, {
+      version,
+      source: 'local',
+      enabled: true,
+      capabilities: registryEntry.capabilities ?? [],
+      constraints: [],
+      allowedLlms,
+      path: registryEntry.path,
+      inputSchema: registryEntry.inputSchema,
+    });
+    store.buildLock();
   } else if (kind === 'mcp') {
     if (!explicitSource && !hasManualMcpConfig(flags)) {
       const results = await searchCatalog(store.loadManifest(), 'mcp', name, 10);

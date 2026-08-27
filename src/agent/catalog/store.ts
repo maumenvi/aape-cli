@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { agentRegistry, findAgent } from '../agents/index.ts';
 import { buildCatalogContexts, syncVsCodeMcpConfig } from './context/index.ts';
@@ -128,22 +129,51 @@ export class AgentCatalogStore {
   }
 
   buildLock(): SourceLock {
-    const lock = buildLockFromManifest(this.loadManifest());
+    const lock = buildLockFromManifest(this.loadManifest(), path.dirname(this.paths.manifest));
     this.saveLock(lock);
     return lock;
   }
 
-  verifyLock(lock: SourceLock = this.loadLock() ?? this.buildLock()): { ok: true } {
-    return verifySourceLock(lock);
+  verifyLock(lock: SourceLock | null = this.loadLock()): { ok: true } {
+    if (!lock) {
+      throw new Error('source.lock not found. Run "maia lock" first.');
+    }
+    return verifySourceLock(lock, path.dirname(this.paths.manifest));
   }
 
   getInstalledPackages(kind?: CatalogKind): LockPackage[] {
-    const lock = this.loadLock() ?? this.buildLock();
+    const lock = this.loadLock();
+    if (!lock) {
+      return [];
+    }
     const packages = Object.values(lock.packages);
     return kind ? packages.filter((pkg) => pkg.type === kind) : packages;
   }
 
   async loadRuntimeModule(kind: CatalogKind, name: string): Promise<unknown> {
+    const lock = this.loadLock();
+    const match = lock ? Object.values(lock.packages).find((pkg) => pkg.type === kind && pkg.name === name) : undefined;
+    if (match?.path) {
+      const candidate = match.path.startsWith('/')
+        ? match.path
+        : path.resolve(path.dirname(this.paths.manifest), match.path);
+      if (existsSync(candidate)) {
+        if (candidate.endsWith('.md')) {
+          const markdown = readFileSync(candidate, 'utf8');
+          return {
+            [kind]: {
+              execute: async (_input: unknown) => ({
+                kind,
+                name,
+                markdown,
+              }),
+            },
+          };
+        }
+        return import(pathToFileURL(candidate).href);
+      }
+    }
+
     const targetPath = resolveRuntimeModulePath(kind, name);
     if (!existsSync(targetPath)) {
       throw new Error(`Runtime module not found for ${kind} "${name}" at ${targetPath}`);

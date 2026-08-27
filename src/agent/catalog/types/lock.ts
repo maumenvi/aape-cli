@@ -15,6 +15,7 @@ export interface LockPackage {
   constraints: string[];
   allowedLlms: string[];
   sourceCommit?: string;
+  artifactHash?: string;
   provenance: {
     repo: string;
     ref: string;

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
@@ -100,6 +100,34 @@ describe('AgentCatalogStore', () => {
       const lock = store.buildLock();
       assert.equal(store.getLlmAccessDefault(), 'deny');
       assert.deepEqual(lock.packages['tool:read_file'].allowedLlms, []);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('fails verification when a materialized artifact changes', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-verify-artifact-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+
+      const skillPath = path.resolve(tempDir, 'skills', 'repo_overview.ts');
+      mkdirSync(path.dirname(skillPath), { recursive: true });
+      writeFileSync(skillPath, 'export const skill = { execute: async () => ({ ok: true }) };\n', 'utf8');
+
+      store.addDependency('skill', 'repo_overview', {
+        version: '^1.0.0',
+        source: 'local',
+        enabled: true,
+        path: 'skills/repo_overview.ts',
+      });
+
+      const lock = store.buildLock();
+      assert.ok(lock.packages['skill:repo_overview'].artifactHash);
+
+      writeFileSync(skillPath, 'export const skill = { execute: async () => ({ ok: false }) };\n', 'utf8');
+
+      assert.throws(() => store.verifyLock(lock), /Artifact hash mismatch for skill:repo_overview/);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
