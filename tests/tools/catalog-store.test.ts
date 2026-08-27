@@ -91,7 +91,7 @@ describe('AgentCatalogStore', () => {
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveManifest(store.loadManifest());
       store.setLlmAccessDefault('deny');
-      store.addDependency('tool', 'read_file', {
+      store.addDependency('skill', 'repo_overview', {
         version: '^1.0.0',
         source: 'local',
         enabled: true,
@@ -99,7 +99,7 @@ describe('AgentCatalogStore', () => {
 
       const lock = store.buildLock();
       assert.equal(store.getLlmAccessDefault(), 'deny');
-      assert.deepEqual(lock.packages['tool:read_file'].allowedLlms, []);
+      assert.deepEqual(lock.packages['skill:repo_overview'].allowedLlms, []);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
@@ -128,6 +128,32 @@ describe('AgentCatalogStore', () => {
       writeFileSync(skillPath, 'export const skill = { execute: async () => ({ ok: false }) };\n', 'utf8');
 
       assert.throws(() => store.verifyLock(lock), /Artifact hash mismatch for skill:repo_overview/);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('fails verification when a locked artifact is removed', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-verify-missing-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+
+      const skillPath = path.resolve(tempDir, 'skills', 'repo_overview.ts');
+      mkdirSync(path.dirname(skillPath), { recursive: true });
+      writeFileSync(skillPath, 'export const skill = { execute: async () => ({ ok: true }) };\n', 'utf8');
+
+      store.addDependency('skill', 'repo_overview', {
+        version: '^1.0.0',
+        source: 'local',
+        enabled: true,
+        path: 'skills/repo_overview.ts',
+      });
+
+      const lock = store.buildLock();
+      rmSync(skillPath);
+
+      assert.throws(() => store.verifyLock(lock), /Materialized package missing for skill:repo_overview/);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }

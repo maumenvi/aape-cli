@@ -19,14 +19,14 @@ const keyByKind: Record<AccessResourceKind, PolicyKey> = {
   mcp: 'mcps',
 };
 
-export function normalizeAccessList(list?: string[]): string[] {
-  if (!Array.isArray(list) || list.length === 0) return [ACCESS_ALL];
+export function normalizeAccessList(list?: string[], emptyFallback: string[] = [ACCESS_ALL]): string[] {
+  if (!Array.isArray(list)) return [ACCESS_ALL];
   const normalized = [...new Set(
     list
       .map((item) => item.trim())
       .filter((item) => item.length > 0),
   )];
-  return normalized.length > 0 ? normalized : [ACCESS_ALL];
+  return normalized.length > 0 ? normalized : emptyFallback;
 }
 
 export function resolveAllowedLlms(
@@ -34,16 +34,16 @@ export function resolveAllowedLlms(
   defaultPolicy: AccessDefaultPolicy = ACCESS_DEFAULT_ALLOW,
 ): string[] {
   if (Array.isArray(allowedLlms)) {
-    return normalizeAccessList(allowedLlms);
+    return normalizeAccessList(allowedLlms, []);
   }
   return defaultPolicy === ACCESS_DEFAULT_DENY ? [] : [ACCESS_ALL];
 }
 
 export function normalizeLlmAccessPolicy(policy?: LlmAccessPolicy): Required<LlmAccessPolicy> {
   return {
-    tools: normalizeAccessList(policy?.tools),
-    skills: normalizeAccessList(policy?.skills),
-    mcps: normalizeAccessList(policy?.mcps),
+    tools: normalizeAccessList(policy?.tools, []),
+    skills: normalizeAccessList(policy?.skills, []),
+    mcps: normalizeAccessList(policy?.mcps, []),
   };
 }
 

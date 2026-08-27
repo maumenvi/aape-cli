@@ -49,10 +49,6 @@ export function loadDotEnvFromCurrentProject(): void {
   loadDotEnvFromFile(projectDotMaiaEnv);
 }
 
-const workspaceDotEnv = path.resolve(process.cwd(), '.env.maia');
-ensureProjectDotEnv(workspaceDotEnv);
-loadDotEnvFromCurrentProject();
-
 const getEnv = (key: string, fallback = ''): string => {
   const value = process.env[key];
   return typeof value === 'string' ? value.trim() : fallback;

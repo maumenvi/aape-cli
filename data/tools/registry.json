@@ -1,0 +1,28 @@
+{
+  "items": [
+    {
+      "name": "read_file",
+      "description": "Read a UTF-8 text file from the current workspace.",
+      "path": "../src/agent/tools/read_file.ts",
+      "version": "1.0.0",
+      "capabilities": [
+        "filesystem"
+      ],
+      "allowedLlms": [
+        "*"
+      ],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

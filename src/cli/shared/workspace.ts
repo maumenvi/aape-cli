@@ -83,7 +83,15 @@ export async function reinstallFromLock(store: Pick<AgentCatalogStore, 'getPaths
           if (!source) {
             throw new Error(`Missing source "${pkg.source}" for skill "${pkg.name}"`);
           }
-          return materializeRemoteSkill(store, pkg.name, source, pkg.path);
+          return materializeRemoteSkill(
+            store,
+            pkg.name,
+            {
+              ...source,
+              ref: source.type === 'git' ? source.commit : (source.ref ?? source.commit),
+            },
+            pkg.path,
+          );
         }
         return materializeSkillFromLock(store, pkg);
       }),

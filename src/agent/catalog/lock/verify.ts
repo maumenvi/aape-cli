@@ -27,6 +27,9 @@ export function verifySourceLock(lock: SourceLock, workspaceRoot = process.cwd()
 
     const resolvedPath = resolvePackagePath(workspaceRoot, pkg.path);
     if (!existsSync(resolvedPath)) {
+      if (pkg.artifactHash) {
+        throw new Error(`Materialized package missing for ${id} at ${pkg.path}`);
+      }
       continue;
     }
 
