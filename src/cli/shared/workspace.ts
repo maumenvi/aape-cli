@@ -1,4 +1,14 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  closeSync,
+  constants,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { syncVsCodeMcpConfig } from '../../agent/catalog/context/index.ts';
 import { resolveRuntimeModulePath } from '../../agent/catalog/registry/index.ts';
@@ -41,6 +51,65 @@ function assertMaterializedPath(
   return resolved;
 }
 
+function lstatIfPresent(candidate: string): ReturnType<typeof lstatSync> | null {
+  try {
+    return lstatSync(candidate);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function assertNoSymlinkTraversal(workspaceRoot: string, targetPath: string, label: string): void {
+  const root = path.resolve(workspaceRoot);
+  const rootStats = lstatIfPresent(root);
+  if (!rootStats?.isDirectory() || rootStats.isSymbolicLink()) {
+    throw new Error(`Unsafe ${label}: workspace root must be a real directory`);
+  }
+
+  const relative = path.relative(root, targetPath);
+  let current = root;
+  for (const segment of relative.split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    const stats = lstatIfPresent(current);
+    if (stats?.isSymbolicLink()) {
+      throw new Error(`Unsafe ${label}: symbolic links are not allowed in materialized paths (${current})`);
+    }
+  }
+}
+
+function writeMaterializedFile(
+  workspaceRoot: string,
+  targetPath: string,
+  label: string,
+  content: string,
+): void {
+  assertNoSymlinkTraversal(workspaceRoot, targetPath, label);
+  mkdirSync(path.dirname(targetPath), { recursive: true });
+  assertNoSymlinkTraversal(workspaceRoot, targetPath, label);
+
+  const realRoot = realpathSync(workspaceRoot);
+  const realParent = realpathSync(path.dirname(targetPath));
+  const realRelative = path.relative(realRoot, realParent);
+  if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
+    throw new Error(`Unsafe ${label}: materialized path resolves outside the workspace`);
+  }
+
+  const noFollow = typeof constants.O_NOFOLLOW === 'number' ? constants.O_NOFOLLOW : 0;
+  const fd = openSync(
+    targetPath,
+    constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | noFollow,
+    0o666,
+  );
+  try {
+    writeFileSync(fd, content, 'utf8');
+  } finally {
+    closeSync(fd);
+  }
+}
+
 export function resolveWorkspaceRoot(store: Pick<AgentCatalogStore, 'getPaths'>): string {
   return path.dirname(store.getPaths().manifest);
 }
@@ -69,8 +138,7 @@ export function materializeSkill(store: Pick<AgentCatalogStore, 'getPaths'>, nam
   const targetPath = targetRelativePath
     ? assertMaterializedPath(workspaceRoot, targetRelativePath, 'skill target path', 'skills')
     : resolveSkillTargetPath(store, name, sourcePath);
-  mkdirSync(path.dirname(targetPath), { recursive: true });
-  writeFileSync(targetPath, readFileSync(sourcePath, 'utf8'), 'utf8');
+  writeMaterializedFile(workspaceRoot, targetPath, 'skill target path', readFileSync(sourcePath, 'utf8'));
   return targetPath;
 }
 
@@ -84,8 +152,7 @@ export function materializeTool(store: Pick<AgentCatalogStore, 'getPaths'>, name
   const targetPath = targetRelativePath
     ? assertMaterializedPath(workspaceRoot, targetRelativePath, 'tool target path', 'tools')
     : resolveToolTargetPath(store, name, sourcePath);
-  mkdirSync(path.dirname(targetPath), { recursive: true });
-  writeFileSync(targetPath, readFileSync(sourcePath, 'utf8'), 'utf8');
+  writeMaterializedFile(workspaceRoot, targetPath, 'tool target path', readFileSync(sourcePath, 'utf8'));
   return targetPath;
 }
 
@@ -105,9 +172,8 @@ export async function materializeRemoteSkill(
   }
 
   const workspaceRoot = resolveWorkspaceRoot(store);
-  const targetPath = assertWorkspaceRelativePath(workspaceRoot, targetRelativePath, 'skill target path');
-  mkdirSync(path.dirname(targetPath), { recursive: true });
-  writeFileSync(targetPath, markdown, 'utf8');
+  const targetPath = assertMaterializedPath(workspaceRoot, targetRelativePath, 'skill target path', 'skills');
+  writeMaterializedFile(workspaceRoot, targetPath, 'skill target path', markdown);
   return targetPath;
 }
 
@@ -116,10 +182,12 @@ export async function reinstallFromLock(store: Pick<AgentCatalogStore, 'getPaths
   for (const pkg of Object.values(lock.packages)) {
     if (!pkg.enabled || !pkg.path) continue;
     if (pkg.type === 'skill') {
-      assertMaterializedPath(workspaceRoot, pkg.path, 'skill target path', 'skills');
+      const targetPath = assertMaterializedPath(workspaceRoot, pkg.path, 'skill target path', 'skills');
+      assertNoSymlinkTraversal(workspaceRoot, targetPath, 'skill target path');
     }
     if (pkg.type === 'tool') {
-      assertMaterializedPath(workspaceRoot, pkg.path, 'tool target path', 'tools');
+      const targetPath = assertMaterializedPath(workspaceRoot, pkg.path, 'tool target path', 'tools');
+      assertNoSymlinkTraversal(workspaceRoot, targetPath, 'tool target path');
     }
   }
 

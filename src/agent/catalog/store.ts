@@ -3,7 +3,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { agentRegistry, findAgent } from '../agents/index.ts';
 import { buildCatalogContexts, syncVsCodeMcpConfig } from './context/index.ts';
-import { buildLockFromManifest, verifySourceLock } from './lock/index.ts';
+import { buildLockFromManifest, verifySourceLock, verifySourceLockMetadata } from './lock/index.ts';
 import { createDefaultManifest, normalizeManifest } from './manifest/index.ts';
 import { resolveCatalogPaths } from './paths/index.ts';
 import {
@@ -139,6 +139,13 @@ export class AgentCatalogStore {
       throw new Error('source.lock not found. Run "maia lock" first.');
     }
     return verifySourceLock(lock, path.dirname(this.paths.manifest));
+  }
+
+  verifyLockMetadata(lock: SourceLock | null = this.loadLock()): { ok: true } {
+    if (!lock) {
+      throw new Error('source.lock not found. Run "maia lock" first.');
+    }
+    return verifySourceLockMetadata(lock);
   }
 
   getInstalledPackages(kind?: CatalogKind): LockPackage[] {

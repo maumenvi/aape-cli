@@ -22,18 +22,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplified package metadata and CI to validate the published CLI flow directly.
 - Read-only discovery commands no longer create `source.lock` or `.env.maia` side effects.
 - `verify` now checks artifact hashes and flags missing materialized files instead of silently accepting incomplete lock state.
-- `strictVerify` is opt-in and rejects unresolved source commits when enabled.
+- `strictVerify` is enabled by default for new manifests and rejects unresolved source commits.
 - Remote skills now reinstall from the pinned source commit recorded in the lock instead of reusing a mutable branch reference.
+- MCP runtime support is explicitly limited to the `2025-06-18` and `2024-11-05` legacy protocol revisions; incompatible modern-era responses are rejected.
 
 ### Fixed
 - Fixed the empty-list access bug where `deny` was incorrectly treated as wildcard access.
 - Fixed false-positive installs for non-existent tools by refusing unknown local registry entries.
-- Fixed `ci` flow ordering so reinstall happens before strict verification; the lock is no longer validated against a missing artifact before rehydration.
+- Fixed `ci` flow ordering so lock metadata and integrity are validated before materialization, followed by artifact verification after rehydration.
 - Fixed workspace containment checks for `read_file` to prevent escaping the project root via absolute paths and symlinks.
 - Fixed MCP protocol negotiation by supporting a version list instead of hardcoding `2024-11-05`, while preserving fallback compatibility with legacy peers.
+- Isolated stdio/NPX MCP child environments to a small operational allowlist plus variables explicitly declared in the MCP config.
+- Blocked materialization through symlinked workspace paths and no longer follow a symlink at the output file.
+- Hid credential values while they are entered in an interactive terminal.
+- Removed the published `prepare` lifecycle script; `npm pack` now builds once through `prepack` and installs do not reference omitted build sources.
 
 ### Notes
-- Several production hardening items remain intentionally open and are tracked as follow-up work: visible secret input in MCP onboarding, inherited `process.env` for stdio/NPX MCPs, and version alignment between package metadata and changelog.
+- MCP `2026-07-28` uses the modern stateless era and is not implemented in this release. Maia fails closed instead of silently rewriting a modern version to a legacy one.
 
 ## [1.5.2] - 2026-08-26
 

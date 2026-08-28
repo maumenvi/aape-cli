@@ -15,6 +15,7 @@ description: Helps users discover and install agent skills when they ask questio
 
 This skill helps you discover and install skills from the open agent skills ecosystem.
 `;
+const COMMIT = '0123456789abcdef0123456789abcdef01234567';
 
 describe('Remote skill install', () => {
   it('downloads a skill from an explicitly configured GitHub source', async () => {
@@ -32,7 +33,10 @@ describe('Remote skill install', () => {
 
       globalThis.fetch = async (input: RequestInfo | URL) => {
         const url = String(input);
-        assert.equal(url, 'https://raw.githubusercontent.com/vercel-labs/skills/main/skills/find-skills/SKILL.md');
+        if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
+          return Response.json({ sha: COMMIT });
+        }
+        assert.equal(url, `https://raw.githubusercontent.com/vercel-labs/skills/${COMMIT}/skills/find-skills/SKILL.md`);
         return new Response(FIND_SKILLS_MARKDOWN, { status: 200, headers: { 'content-type': 'text/plain' } });
       };
 
@@ -69,10 +73,13 @@ describe('Remote skill install', () => {
 
       globalThis.fetch = async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url === 'https://raw.githubusercontent.com/martinholovsky/claude-skills-generator/main/skills/sqlite-database-expert/SKILL.md') {
+        if (url === 'https://api.github.com/repos/martinholovsky/claude-skills-generator/commits/main') {
+          return Response.json({ sha: COMMIT });
+        }
+        if (url === `https://raw.githubusercontent.com/martinholovsky/claude-skills-generator/${COMMIT}/skills/sqlite-database-expert/SKILL.md`) {
           return new Response('missing', { status: 404 });
         }
-        if (url === 'https://api.github.com/repos/martinholovsky/claude-skills-generator/git/trees/main?recursive=1') {
+        if (url === `https://api.github.com/repos/martinholovsky/claude-skills-generator/git/trees/${COMMIT}?recursive=1`) {
           return Response.json({
             tree: [
               { type: 'blob', path: 'skills/sqlite/SKILL.md' },
@@ -80,7 +87,7 @@ describe('Remote skill install', () => {
             ],
           });
         }
-        if (url === 'https://raw.githubusercontent.com/martinholovsky/claude-skills-generator/main/skills/sqlite/SKILL.md') {
+        if (url === `https://raw.githubusercontent.com/martinholovsky/claude-skills-generator/${COMMIT}/skills/sqlite/SKILL.md`) {
           return new Response(FIND_SKILLS_MARKDOWN, { status: 200, headers: { 'content-type': 'text/plain' } });
         }
         throw new Error(`Unexpected request: ${url}`);

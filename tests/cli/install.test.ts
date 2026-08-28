@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -65,7 +65,7 @@ describe('CLI install/remove', () => {
 
       globalThis.fetch = async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url === 'https://raw.githubusercontent.com/vercel-labs/skills/main/skills/find-skills/SKILL.md') {
+        if (url === `https://raw.githubusercontent.com/vercel-labs/skills/${COMMIT}/skills/find-skills/SKILL.md`) {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
         if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
@@ -178,6 +178,25 @@ describe('CLI install/remove', () => {
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses to materialize a tool through a symlinked tools directory', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-tool-symlink-'));
+    const externalDir = mkdtempSync(path.join(os.tmpdir(), 'maia-tool-external-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      symlinkSync(externalDir, path.resolve(tempDir, 'tools'), 'dir');
+
+      await assert.rejects(
+        () => installCommand(['tool', 'read_file'], { store }),
+        /symbolic links are not allowed in materialized paths/,
+      );
+      assert.equal(existsSync(path.resolve(externalDir, 'read_file.mjs')), false);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+      rmSync(externalDir, { recursive: true, force: true });
     }
   });
 });

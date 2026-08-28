@@ -14,6 +14,7 @@ description: Finds external skills.
 
 # Find Skills
 `;
+const COMMIT = '0123456789abcdef0123456789abcdef01234567';
 
 describe('CLI ci', () => {
   it('reinstalls skills and syncs MCP config from source.lock', async () => {
@@ -31,6 +32,9 @@ describe('CLI ci', () => {
 
       globalThis.fetch = async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
+          return Response.json({ sha: COMMIT });
+        }
         if (url === 'https://raw.githubusercontent.com/vercel-labs/skills/main/skills/find-skills/SKILL.md') {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
@@ -91,6 +95,52 @@ describe('CLI ci', () => {
       assert.match(content, /^RENCOSTA2025_CONTEXT7FORK_AUTHORIZATION=""/m);
       assert.doesNotMatch(content, /^SKILLS_REGISTRY_URL=https:\/\/skills\.sh$/m);
       assert.doesNotMatch(content, /^NODE_ENV=development$/m);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('validates lock integrity before overwriting a materialized file', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-ci-integrity-order-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      await installCommand(['tool', 'read_file'], { store });
+
+      const lock = store.loadLock();
+      assert.ok(lock);
+      const pkg = lock.packages['tool:read_file'];
+      assert.ok(pkg);
+      pkg.path = 'tools/sentinel.ts';
+      store.saveLock(lock);
+
+      const sentinelPath = path.resolve(tempDir, 'tools', 'sentinel.ts');
+      writeFileSync(sentinelPath, 'do not overwrite\n', 'utf8');
+
+      await assert.rejects(() => ciCommand([], { store }), /Integrity mismatch for tool:read_file/);
+      assert.equal(readFileSync(sentinelPath, 'utf8'), 'do not overwrite\n');
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('validates locked source metadata before materialization', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-ci-source-order-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      await installCommand(['tool', 'read_file'], { store });
+
+      const lock = store.loadLock();
+      assert.ok(lock);
+      lock.sources.local.url = 'https://example.invalid/tampered.git';
+      store.saveLock(lock);
+
+      const toolPath = path.resolve(tempDir, lock.packages['tool:read_file'].path);
+      writeFileSync(toolPath, 'do not overwrite\n', 'utf8');
+
+      await assert.rejects(() => ciCommand([], { store }), /Source metadata mismatch for tool:read_file/);
+      assert.equal(readFileSync(toolPath, 'utf8'), 'do not overwrite\n');
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }

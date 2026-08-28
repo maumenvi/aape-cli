@@ -181,6 +181,10 @@ MCP entries are discovered from the configured registry (`provider: "mcp"`), by 
 
 - `https://registry.modelcontextprotocol.io`
 
+The built-in MCP runtime currently supports only the legacy `initialize`/`initialized` era, for protocol revisions `2025-06-18` and `2024-11-05`. MCP `2026-07-28` is a different, stateless wire protocol and is not implemented in this release. If a peer announces that modern revision (or any other unsupported revision), Maia rejects the connection instead of rewriting the negotiated version.
+
+For stdio and NPX servers, Maia passes only a small set of OS/runtime variables plus values explicitly declared in that MCP's `env` config. The rest of the parent process environment, including undeclared credentials, is not inherited.
+
 ### MCP credentials
 
 In `maia mcp find`:
@@ -191,7 +195,7 @@ In `maia mcp find`:
 In `maia mcp add` (or installation through selection in `find`):
 
 - detects required variables;
-- prompts for values in the interactive terminal;
+- prompts for values without echoing secrets in the interactive terminal;
 - creates or updates the project's `.env.maia` file with only the variables referenced by installed MCP configs;
 - preserves custom entries and removes obsolete auto-generated defaults from older templates;
 - rebuilds those MCP variables during `maia install` and `maia ci` from `source.lock`, without overwriting the real project `.env`.
@@ -262,6 +266,8 @@ maia context build
 maia context show --for dev
 maia context show --for llm
 ```
+
+New manifests enable `strictVerify` by default. `maia ci` validates lock metadata and integrity before writing files, restores the locked artifacts, and then verifies their hashes.
 
 ### Other commands
 

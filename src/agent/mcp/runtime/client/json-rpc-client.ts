@@ -1,5 +1,11 @@
 import type { McpClient, McpRequestOptions, McpTransport } from '../contracts/types.ts';
-import { negotiateMcpProtocolVersion, type McpCallToolResult, type McpInitializeResult, type McpListToolsResult } from '../protocol/json-rpc.ts';
+import {
+  assertSupportedMcpProtocolVersion,
+  negotiateMcpProtocolVersion,
+  type McpCallToolResult,
+  type McpInitializeResult,
+  type McpListToolsResult,
+} from '../protocol/json-rpc.ts';
 
 export class JsonRpcMcpClient implements McpClient {
   private readonly transport: McpTransport;
@@ -19,11 +25,12 @@ export class JsonRpcMcpClient implements McpClient {
         version: '1.5.2',
       },
     }, options);
+    const protocolVersion = assertSupportedMcpProtocolVersion(result?.protocolVersion);
     await this.transport.notify('notifications/initialized', {});
     this.initialized = true;
     return {
       ...result,
-      protocolVersion: negotiateMcpProtocolVersion(result?.protocolVersion ?? requestedVersion),
+      protocolVersion,
     };
   }
 

@@ -38,7 +38,6 @@
     "dev": "node src/cli/index.ts",
     "maia": "node src/cli/index.ts",
     "build:publish": "node scripts/build-publish.mjs",
-    "prepare": "npm run build:publish",
     "prepack": "npm run build:publish",
     "test": "node scripts/run-tests.mjs",
     "typecheck": "tsc --noEmit"

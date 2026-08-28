@@ -9,6 +9,7 @@ export const ciCommand: CommandHandler = async (_args, { store }) => {
   if (!lock) {
    throw new Error('source.lock not found. Run "maia lock" first.');
   }
+  store.verifyLockMetadata(lock);
   const result = await reinstallFromLock(store, lock);
   store.verifyLock(lock);
   restoreConfiguredAgents(store);

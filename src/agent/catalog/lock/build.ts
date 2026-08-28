@@ -7,10 +7,15 @@ import { createPackageDescriptor } from './package-descriptor.ts';
 export function buildLockFromManifest(manifest: SourcesManifest, workspaceRoot = process.cwd()): SourceLock {
   const defaultAccessPolicy = manifest.config.llmAccessDefault;
   const strictVerify = manifest.config.strictVerify;
+  const referencedSources = new Set([
+    ...Object.values(manifest.skills),
+    ...Object.values(manifest.mcps),
+    ...Object.values(manifest.tools),
+  ].map((dependency) => dependency.source));
   const sources: SourceLock['sources'] = {};
   for (const [alias, source] of Object.entries(manifest.sources)) {
     const resolvedCommit = resolveSourceCommit(alias, source);
-    if (strictVerify && !resolvedCommit.commitResolved) {
+    if (strictVerify && source.type === 'git' && referencedSources.has(alias) && !resolvedCommit.commitResolved) {
       throw new Error(`Unable to resolve commit for source "${alias}" while strictVerify is enabled`);
     }
     sources[alias] = {

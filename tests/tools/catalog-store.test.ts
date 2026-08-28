@@ -6,6 +6,20 @@ import os from 'node:os';
 import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
 
 describe('AgentCatalogStore', () => {
+  it('enables strict source verification in new manifests', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-strict-default-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      const manifest = store.loadManifest();
+
+      assert.equal(manifest.config.strictVerify, true);
+      assert.match(manifest.sources.local.ref ?? '', /^[0-9a-f]{40}$/);
+      assert.throws(() => store.verifyLockMetadata(null), /source.lock not found/);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('creates sources and source.lock from dependencies', () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-catalog-'));
     try {

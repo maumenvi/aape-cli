@@ -5,6 +5,21 @@ import type { McpRequestOptions, McpTransport } from '../contracts/types.ts';
 import { encodeMcpMessage, McpMessageDecoder } from '../protocol/framing.ts';
 import type { JsonRpcFailure, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccess } from '../protocol/json-rpc.ts';
 
+const SAFE_INHERITED_ENV_KEYS = [
+  'PATH',
+  'PATHEXT',
+  'SystemRoot',
+  'WINDIR',
+  'ComSpec',
+  'TMPDIR',
+  'TMP',
+  'TEMP',
+  'LANG',
+  'LC_ALL',
+  'LC_CTYPE',
+  'TERM',
+] as const;
+
 function resolveEnvPlaceholders(value: string): string {
   return value
     .replace(/\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, key: string) => {
@@ -21,6 +36,17 @@ function resolveRuntimeEnv(env: Record<string, string> | undefined): Record<stri
   const result: Record<string, string> = {};
   for (const [key, value] of Object.entries(env ?? {})) {
     result[key] = resolveEnvPlaceholders(value);
+  }
+  return result;
+}
+
+function resolveSafeInheritedEnv(): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const key of SAFE_INHERITED_ENV_KEYS) {
+    const value = process.env[key];
+    if (typeof value === 'string') {
+      result[key] = value;
+    }
   }
   return result;
 }
@@ -48,7 +74,7 @@ export class McpStdioTransport implements McpTransport {
     this.child = spawn(this.config.command, this.config.args ?? [], {
       stdio: 'pipe',
       env: {
-        ...process.env,
+        ...resolveSafeInheritedEnv(),
         ...runtimeEnv,
       },
     });

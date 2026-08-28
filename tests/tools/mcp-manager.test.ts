@@ -13,11 +13,13 @@ describe('McpManager', () => {
   let tempDir: string;
   let fixturePath: string;
   let flakyFixturePath: string;
+  let envFixturePath: string;
 
   beforeEach(() => {
     tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-manager-'));
     fixturePath = fileURLToPath(new URL('../fixtures/mcp/mock-stdio-server.mjs', import.meta.url));
     flakyFixturePath = fileURLToPath(new URL('../fixtures/mcp/mock-flaky-call-server.mjs', import.meta.url));
+    envFixturePath = fileURLToPath(new URL('../fixtures/mcp/mock-env-server.mjs', import.meta.url));
     const catalog = new AgentCatalogStore({ cwd: tempDir });
     manager = new McpManager(catalog);
   });
@@ -90,6 +92,44 @@ describe('McpManager', () => {
 
       await manager.stopServer('mock');
       assert.equal(manager.describe().sessions.length, 0);
+    });
+
+    it('passes only explicitly declared credentials to stdio MCP processes', async () => {
+      const declaredSourceName = 'MAIA_TEST_DECLARED_SOURCE';
+      const undeclaredSecretName = 'MAIA_TEST_UNDECLARED_SECRET';
+      const childDeclaredName = 'MCP_DECLARED_VALUE';
+      const previousDeclared = process.env[declaredSourceName];
+      const previousUndeclared = process.env[undeclaredSecretName];
+      process.env[declaredSourceName] = 'allowed-value';
+      process.env[undeclaredSecretName] = 'must-not-leak';
+
+      try {
+        await manager.installWithVscode('mock-env', {
+          version: '*',
+          source: 'local',
+          enabled: true,
+          vscode: {
+            command: 'node',
+            args: [envFixturePath],
+            env: {
+              [childDeclaredName]: `\${env:${declaredSourceName}}`,
+            },
+          },
+        });
+
+        const result = await manager.callTool('mock-env', 'read-env', {
+          names: [childDeclaredName, declaredSourceName, undeclaredSecretName],
+        });
+        const values = JSON.parse(result.content?.[0]?.text ?? '{}') as Record<string, string | null>;
+        assert.equal(values[childDeclaredName], 'allowed-value');
+        assert.equal(values[declaredSourceName], null);
+        assert.equal(values[undeclaredSecretName], null);
+      } finally {
+        if (typeof previousDeclared === 'undefined') delete process.env[declaredSourceName];
+        else process.env[declaredSourceName] = previousDeclared;
+        if (typeof previousUndeclared === 'undefined') delete process.env[undeclaredSecretName];
+        else process.env[undeclaredSecretName] = previousUndeclared;
+      }
     });
 
     it('retries transient callTool failures with backoff', async () => {

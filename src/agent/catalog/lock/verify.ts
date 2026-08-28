@@ -15,12 +15,9 @@ function fingerprintFile(filePath: string): string {
 }
 
 export function verifySourceLock(lock: SourceLock, workspaceRoot = process.cwd()): { ok: true } {
-  for (const [id, pkg] of Object.entries(lock.packages)) {
-    const expected = computeLockIntegrity(pkg);
-    if (pkg.integrity !== expected) {
-      throw new Error(`Integrity mismatch for ${id}`);
-    }
+  verifySourceLockMetadata(lock);
 
+  for (const [id, pkg] of Object.entries(lock.packages)) {
     if (!pkg.path) {
       continue;
     }
@@ -49,6 +46,31 @@ export function verifySourceLock(lock: SourceLock, workspaceRoot = process.cwd()
     const fingerprint = readFileSync(resolvedPath, 'utf8');
     if (fingerprint.length === 0) {
       throw new Error(`Materialized package is empty for ${id} at ${pkg.path}`);
+    }
+  }
+  return { ok: true };
+}
+
+export function verifySourceLockMetadata(lock: SourceLock): { ok: true } {
+  for (const [id, pkg] of Object.entries(lock.packages)) {
+    const expected = computeLockIntegrity(pkg);
+    if (pkg.integrity !== expected) {
+      throw new Error(`Integrity mismatch for ${id}`);
+    }
+
+    const source = lock.sources[pkg.source];
+    if (!source) {
+      throw new Error(`Missing locked source "${pkg.source}" for ${id}`);
+    }
+    const sourceRef = source.ref ?? 'main';
+    const sourceTrusted = source.trusted ?? false;
+    if (
+      source.url !== pkg.provenance.repo
+      || sourceRef !== pkg.provenance.ref
+      || sourceTrusted !== pkg.provenance.trusted
+      || (pkg.sourceCommit && source.commit !== pkg.sourceCommit)
+    ) {
+      throw new Error(`Source metadata mismatch for ${id}`);
     }
   }
   return { ok: true };

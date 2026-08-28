@@ -47,11 +47,30 @@ export interface McpCallToolResult {
 
 export const MCP_PROTOCOL_VERSIONS = ['2025-06-18', '2024-11-05'] as const;
 
+export const MCP_PROTOCOL_ERA = 'legacy' as const;
+
 export type McpProtocolVersion = (typeof MCP_PROTOCOL_VERSIONS)[number];
 
+export function isSupportedMcpProtocolVersion(version: unknown): version is McpProtocolVersion {
+  return typeof version === 'string' && MCP_PROTOCOL_VERSIONS.includes(version as McpProtocolVersion);
+}
+
+export function assertSupportedMcpProtocolVersion(version: unknown): McpProtocolVersion {
+  if (isSupportedMcpProtocolVersion(version)) {
+    return version;
+  }
+
+  const rendered = typeof version === 'string' ? `"${version}"` : 'an omitted protocol version';
+  throw new Error(
+    `Unsupported MCP protocol version ${rendered}. `
+    + `Maia currently supports only the legacy initialize/initialized era (${MCP_PROTOCOL_VERSIONS.join(', ')}); `
+    + 'the stateless 2026-07-28 era is not yet supported.',
+  );
+}
+
 export function negotiateMcpProtocolVersion(requestedVersion?: string): McpProtocolVersion {
-  if (requestedVersion && MCP_PROTOCOL_VERSIONS.includes(requestedVersion as McpProtocolVersion)) {
-    return requestedVersion as McpProtocolVersion;
+  if (isSupportedMcpProtocolVersion(requestedVersion)) {
+    return requestedVersion;
   }
 
   return MCP_PROTOCOL_VERSIONS[0];

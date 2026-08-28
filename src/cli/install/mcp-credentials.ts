@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
+import { Writable } from 'node:stream';
 import type { CatalogSearchResult } from '../../agent/catalog/providers/index.ts';
 import type { AgentCatalogStore } from '../../agent/catalog/store.ts';
 import type { SourceLock } from '../../agent/catalog/types/index.ts';
@@ -27,6 +28,43 @@ interface CredentialRequirement {
   name: string;
   description?: string;
   sourceUrl?: string;
+}
+
+class SecretPromptOutput extends Writable {
+  readonly isTTY = true;
+  readonly columns = process.stdout.columns ?? 80;
+  private muted = false;
+
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+  }
+
+  override _write(
+    chunk: Buffer | string,
+    encoding: BufferEncoding,
+    callback: (error?: Error | null) => void,
+  ): void {
+    if (this.muted) {
+      callback();
+      return;
+    }
+    process.stdout.write(chunk, encoding, callback);
+  }
+}
+
+async function questionSecret(
+  input: ReturnType<typeof createInterface>,
+  output: SecretPromptOutput,
+  prompt: string,
+): Promise<string> {
+  process.stdout.write(prompt);
+  output.setMuted(true);
+  try {
+    return await input.question('');
+  } finally {
+    output.setMuted(false);
+    process.stdout.write('\n');
+  }
 }
 
 function mergeUnique(requirements: CredentialRequirement[]): CredentialRequirement[] {
@@ -227,7 +265,10 @@ export async function configureMcpCredentialsFromResult(
 
   console.log(`MCP "${result.name}" may require specific credentials. We will configure them in .env.maia: ${envFile}`);
   const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
-  const input = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
+  const secretOutput = interactive ? new SecretPromptOutput() : null;
+  const input = interactive && secretOutput
+    ? createInterface({ input: process.stdin, output: secretOutput, terminal: true })
+    : null;
 
   try {
     for (const requirement of requirements) {
@@ -246,13 +287,17 @@ export async function configureMcpCredentialsFromResult(
         console.log(`  URL: ${requirement.sourceUrl}`);
       }
 
-      if (!input) {
+      if (!input || !secretOutput) {
         console.log(`  Set ${requirement.envName} manually in .env.maia to enable this MCP.`);
         toPersist[requirement.envName] = '';
         continue;
       }
 
-      const value = (await input.question(`  Paste the value for ${requirement.envName} (Enter to skip): `)).trim();
+      const value = (await questionSecret(
+        input,
+        secretOutput,
+        `  Paste the value for ${requirement.envName} (input hidden; Enter to skip): `,
+      )).trim();
       toPersist[requirement.envName] = value;
     }
   } finally {

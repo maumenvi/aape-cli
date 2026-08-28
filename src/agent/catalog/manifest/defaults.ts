@@ -7,7 +7,7 @@ export const createDefaultManifest = (): SourcesManifest => ({
   maiaVersion: '^1.0.0',
   config: {
     registryStrategy: 'hybrid',
-    strictVerify: false,
+    strictVerify: true,
     llmAccessDefault: 'allow',
   },
   registries: {
@@ -23,8 +23,8 @@ export const createDefaultManifest = (): SourcesManifest => ({
   sources: {
     local: {
       type: 'git',
-      url: 'https://github.com/maumenvi/maia.git',
-      ref: 'master',
+      url: 'https://github.com/maumenvi/maia-cli.git',
+      ref: 'ead0c40d67627cf9210619270d43b50c7c7a0c1d',
       trusted: true,
     },
   },
