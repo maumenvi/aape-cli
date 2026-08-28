@@ -32,6 +32,13 @@ export const resolveSourceCommit = (
   alias: string,
   source: CatalogSource,
 ): { commit: string; commitResolved: boolean } => {
+  if (source.type !== 'git') {
+    const revision = `${source.type}:${source.url}:${source.ref ?? 'latest'}`;
+    return {
+      commit: createHash('sha1').update(revision).digest('hex'),
+      commitResolved: true,
+    };
+  }
   if (source.ref && FULL_GIT_SHA_PATTERN.test(source.ref)) {
     return { commit: source.ref.toLowerCase(), commitResolved: true };
   }

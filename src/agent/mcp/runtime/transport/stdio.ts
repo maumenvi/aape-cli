@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { loadDotEnvFromCurrentProject } from '../../../../config/index.ts';
 import type { MCPConfig, MCPStdioConfig } from '../../../tools/types.ts';
 import type { McpRequestOptions, McpTransport } from '../contracts/types.ts';
+import { McpJsonRpcError } from '../protocol/json-rpc.ts';
 import { encodeMcpMessage, McpMessageDecoder } from '../protocol/framing.ts';
 import type { JsonRpcFailure, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccess } from '../protocol/json-rpc.ts';
 
@@ -58,6 +59,7 @@ interface PendingRequest {
 }
 
 export class McpStdioTransport implements McpTransport {
+  readonly kind = 'stdio' as const;
   private readonly config: MCPStdioConfig;
   private readonly defaultTimeoutMs: number;
   private readonly child: ChildProcessWithoutNullStreams;
@@ -80,8 +82,11 @@ export class McpStdioTransport implements McpTransport {
     });
 
     this.child.stdout.on('data', (chunk: Buffer) => this.onStdout(chunk));
-    this.child.stderr.on('data', () => undefined);
-    this.child.on('error', (err) => this.failAllPending(err));
+    this.child.stderr.on('data', (chunk: Buffer) => process.stderr.write(chunk));
+    this.child.on('error', (err) => {
+      this.open = false;
+      this.failAllPending(err);
+    });
     this.child.on('exit', (code, signal) => {
       const reason = new Error(`MCP process exited (code=${code ?? 'null'}, signal=${signal ?? 'null'})`);
       this.open = false;
@@ -147,18 +152,19 @@ export class McpStdioTransport implements McpTransport {
       if (typeof response !== 'object' || !response || typeof (response as { id?: unknown }).id !== 'number') {
         continue;
       }
-      const pending = this.pending.get(response.id);
+      const responseId = response.id as number;
+      const pending = this.pending.get(responseId);
       if (!pending) {
         continue;
       }
-      this.pending.delete(response.id);
+      this.pending.delete(responseId);
       if (pending.timer) {
         clearTimeout(pending.timer);
       }
 
       if ('error' in response) {
         const error = response as JsonRpcFailure;
-        pending.reject(new Error(`MCP error ${error.error.code}: ${error.error.message}`));
+        pending.reject(new McpJsonRpcError(error.error.code, error.error.message, error.error.data));
       } else {
         pending.resolve((response as JsonRpcSuccess).result);
       }

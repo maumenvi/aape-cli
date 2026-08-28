@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { resolveGitHubCommit } from '../../agent/catalog/providers/github.ts';
+import { resolveSourceCommit } from '../../agent/catalog/manifest/index.ts';
+import { parseGitHubRepository, resolveGitHubCommit } from '../../agent/catalog/providers/github.ts';
 import { findRegistryEntry } from '../../agent/catalog/registry/index.ts';
 import type { AgentCatalogStore } from '../../agent/catalog/store.ts';
 import { materializeRemoteSkill, materializeSkill } from '../shared/workspace.ts';
@@ -25,9 +26,16 @@ export async function installSkill(store: AgentCatalogStore, options: SkillInsta
     }
     if (manifest.config.strictVerify && source.type === 'git' && !/^[0-9a-f]{40}$/i.test(source.ref ?? '')) {
       const ref = source.ref ?? 'main';
+      const genericResolution = parseGitHubRepository(source.url)
+        ? null
+        : resolveSourceCommit(options.source, source);
+      if (genericResolution && !genericResolution.commitResolved) {
+        throw new Error(`Unable to resolve commit for source "${options.source}" while strictVerify is enabled`);
+      }
+      const resolvedCommit = genericResolution?.commit ?? await resolveGitHubCommit(source.url, ref);
       source = {
         ...source,
-        ref: await resolveGitHubCommit(source.url, ref),
+        ref: resolvedCommit,
       };
       store.addSource(options.source, source);
     }

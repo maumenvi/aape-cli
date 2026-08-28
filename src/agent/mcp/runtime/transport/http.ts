@@ -1,7 +1,14 @@
 import { loadDotEnvFromCurrentProject } from '../../../../config/index.ts';
 import type { MCPConfig, MCPHttpConfig } from '../../../tools/types.ts';
-import type { JsonRpcFailure, JsonRpcNotification, JsonRpcRequest, JsonRpcSuccess } from '../protocol/json-rpc.ts';
-import type { McpRequestOptions, McpTransport } from '../contracts/types.ts';
+import {
+  McpJsonRpcError,
+  type JsonRpcFailure,
+  type JsonRpcNotification,
+  type JsonRpcRequest,
+  type JsonRpcSuccess,
+} from '../protocol/json-rpc.ts';
+import { McpTransportError, type McpRequestOptions, type McpTransport } from '../contracts/types.ts';
+import { createMcpRequestHeaders } from './shared/create-mcp-request-headers.ts';
 
 function resolveEnvPlaceholders(value: string): string {
   return value
@@ -28,6 +35,7 @@ function asHttpConfig(config: MCPConfig): MCPHttpConfig {
 }
 
 export class McpHttpTransport implements McpTransport {
+  readonly kind = 'http' as const;
   private readonly config: MCPHttpConfig;
   private readonly defaultTimeoutMs: number;
   private nextRequestId = 1;
@@ -51,22 +59,22 @@ export class McpHttpTransport implements McpTransport {
       method,
       ...(typeof params === 'undefined' ? {} : { params }),
     };
-    const response = await this.send(payload, options.timeoutMs ?? this.defaultTimeoutMs);
+    const response = await this.send(payload, options.timeoutMs ?? this.defaultTimeoutMs, options);
     if ('error' in response) {
       const failure = response as JsonRpcFailure;
-      throw new Error(`MCP error ${failure.error.code}: ${failure.error.message}`);
+      throw new McpJsonRpcError(failure.error.code, failure.error.message, failure.error.data);
     }
     return (response as JsonRpcSuccess<TResult>).result;
   }
 
-  async notify(method: string, params?: unknown): Promise<void> {
+  async notify(method: string, params?: unknown, options: McpRequestOptions = {}): Promise<void> {
     this.ensureOpen();
     const payload: JsonRpcNotification = {
       jsonrpc: '2.0',
       method,
       ...(typeof params === 'undefined' ? {} : { params }),
     };
-    await this.send(payload, this.defaultTimeoutMs, true);
+    await this.send(payload, this.defaultTimeoutMs, options, true);
   }
 
   async close(): Promise<void> {
@@ -82,6 +90,7 @@ export class McpHttpTransport implements McpTransport {
   private async send(
     payload: JsonRpcRequest | JsonRpcNotification,
     timeoutMs: number,
+    options: McpRequestOptions,
     allowEmpty = false,
   ): Promise<JsonRpcSuccess | JsonRpcFailure> {
     const controller = new AbortController();
@@ -92,16 +101,30 @@ export class McpHttpTransport implements McpTransport {
       const response = await fetch(this.config.url, {
         method: 'POST',
         headers: {
-          'content-type': 'application/json',
           ...resolveHeaders(this.config.headers),
+          ...createMcpRequestHeaders(payload.method, payload.params, options),
         },
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
-      if (!response.ok) {
-        throw new Error(`MCP HTTP transport failed with status ${response.status}`);
-      }
       const text = await response.text();
+      if (!response.ok) {
+        if (text.trim()) {
+          try {
+            const decoded = JSON.parse(text) as JsonRpcSuccess | JsonRpcFailure;
+            if (decoded.jsonrpc === '2.0' && 'error' in decoded) {
+              return decoded;
+            }
+          } catch {
+            // The response is intentionally classified as an unstructured transport failure below.
+          }
+        }
+        throw new McpTransportError(
+          `MCP HTTP transport failed with status ${response.status}`,
+          response.status,
+          false,
+        );
+      }
       if (!text.trim()) {
         if (allowEmpty) {
           return { jsonrpc: '2.0', id: -1, result: {} };

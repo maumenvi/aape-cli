@@ -1,6 +1,7 @@
 import type { MCPConfig, MCPWebSocketConfig } from '../../../tools/types.ts';
 import type { JsonRpcFailure, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccess } from '../protocol/json-rpc.ts';
 import type { McpRequestOptions, McpTransport } from '../contracts/types.ts';
+import { McpJsonRpcError } from '../protocol/json-rpc.ts';
 
 interface PendingRequest {
   resolve(value: unknown): void;
@@ -16,6 +17,7 @@ type WebSocketCtor = new (url: string) => {
 };
 
 export class McpWebSocketTransport implements McpTransport {
+  readonly kind = 'ws' as const;
   private readonly config: MCPWebSocketConfig;
   private readonly defaultTimeoutMs: number;
   private readonly socket: ReturnType<typeof this.createSocket>;
@@ -112,13 +114,14 @@ export class McpWebSocketTransport implements McpTransport {
     if (typeof response !== 'object' || !response || typeof (response as { id?: unknown }).id !== 'number') {
       return;
     }
-    const pending = this.pending.get(response.id);
+    const responseId = response.id as number;
+    const pending = this.pending.get(responseId);
     if (!pending) return;
-    this.pending.delete(response.id);
+    this.pending.delete(responseId);
     if (pending.timer) clearTimeout(pending.timer);
     if ('error' in response) {
       const error = response as JsonRpcFailure;
-      pending.reject(new Error(`MCP error ${error.error.code}: ${error.error.message}`));
+      pending.reject(new McpJsonRpcError(error.error.code, error.error.message, error.error.data));
       return;
     }
     pending.resolve((response as JsonRpcSuccess).result);

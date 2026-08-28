@@ -3,6 +3,7 @@ import type { McpRequestOptions, McpTransport } from '../contracts/types.ts';
 import { McpStdioTransport } from './stdio.ts';
 
 export class McpNpxTransport implements McpTransport {
+  readonly kind = 'npx' as const;
   private readonly stdioTransport: McpStdioTransport;
 
   constructor(config: MCPConfig, defaultTimeoutMs = 15_000) {

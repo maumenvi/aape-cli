@@ -43,7 +43,7 @@ describe('McpStdioServer', () => {
       if (!initialize || !('result' in initialize)) {
         throw new Error('Expected initialize result');
       }
-      assert.equal((initialize.result as { protocolVersion?: string }).protocolVersion, '2025-06-18');
+      assert.equal((initialize.result as { protocolVersion?: string }).protocolVersion, '2025-11-25');
 
       const legacyInitialize = await invoke(server, {
         jsonrpc: '2.0',
@@ -56,6 +56,58 @@ describe('McpStdioServer', () => {
         throw new Error('Expected initialize result for legacy negotiation');
       }
       assert.equal((legacyInitialize.result as { protocolVersion?: string }).protocolVersion, '2024-11-05');
+
+      const modernMeta = {
+        'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+        'io.modelcontextprotocol/clientInfo': { name: 'test-client', version: '1.0.0' },
+        'io.modelcontextprotocol/clientCapabilities': {},
+      };
+      const discover = await invoke(server, {
+        jsonrpc: '2.0',
+        id: 'modern-discover',
+        method: 'server/discover',
+        params: { _meta: modernMeta },
+      });
+      assert.ok(discover && 'result' in discover);
+      if (!discover || !('result' in discover)) {
+        throw new Error('Expected modern discovery result');
+      }
+      assert.deepEqual((discover.result as { supportedVersions?: string[] }).supportedVersions, ['2026-07-28']);
+      assert.equal(
+        (discover.result as { _meta?: Record<string, unknown> })._meta?.['io.modelcontextprotocol/serverInfo']
+          && typeof (discover.result as { _meta?: Record<string, unknown> })._meta?.['io.modelcontextprotocol/serverInfo'],
+        'object',
+      );
+
+      const modernTools = await invoke(server, {
+        jsonrpc: '2.0',
+        id: 'modern-tools',
+        method: 'tools/list',
+        params: { _meta: modernMeta },
+      });
+      assert.ok(modernTools && 'result' in modernTools);
+      if (!modernTools || !('result' in modernTools)) {
+        throw new Error('Expected modern tools/list result');
+      }
+      assert.equal((modernTools.result as { resultType?: string }).resultType, 'complete');
+
+      const unsupported = await invoke(server, {
+        jsonrpc: '2.0',
+        id: 'future-version',
+        method: 'tools/list',
+        params: {
+          _meta: {
+            ...modernMeta,
+            'io.modelcontextprotocol/protocolVersion': '2027-01-01',
+          },
+        },
+      });
+      assert.ok(unsupported && 'error' in unsupported);
+      if (!unsupported || !('error' in unsupported)) {
+        throw new Error('Expected unsupported modern protocol error');
+      }
+      assert.equal(unsupported.error.code, -32022);
+      assert.deepEqual((unsupported.error.data as { supported?: string[] }).supported, ['2026-07-28']);
 
       const toolsList = await invoke(server, { jsonrpc: '2.0', id: 3, method: 'tools/list' });
       assert.ok(toolsList && 'result' in toolsList);

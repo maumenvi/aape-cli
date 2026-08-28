@@ -13,7 +13,9 @@ describe('AgentCatalogStore', () => {
       const manifest = store.loadManifest();
 
       assert.equal(manifest.config.strictVerify, true);
-      assert.match(manifest.sources.local.ref ?? '', /^[0-9a-f]{40}$/);
+      assert.equal(manifest.sources.local.type, 'registry');
+      assert.equal(manifest.sources.local.url, 'npm:@maumenvi/maia-cli');
+      assert.equal(manifest.sources.local.ref, '1.5.2');
       assert.throws(() => store.verifyLockMetadata(null), /source.lock not found/);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });

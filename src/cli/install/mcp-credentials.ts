@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { Writable } from 'node:stream';
@@ -213,7 +213,8 @@ function syncEnvFile(
   }
 
   const normalized = lines.join('\n').replace(/\n*$/, '\n');
-  writeFileSync(filePath, normalized, 'utf8');
+  writeFileSync(filePath, normalized, { encoding: 'utf8', mode: 0o600 });
+  chmodSync(filePath, 0o600);
 }
 
 function ensureEnvFileEntries(rootDir: string, names: Iterable<string>): void {

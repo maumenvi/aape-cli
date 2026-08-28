@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { MAIA_PACKAGE_METADATA } from '../../../shared/package-metadata.ts';
 import type { SourcesManifest } from '../types/index.ts';
 
 export const createDefaultManifest = (): SourcesManifest => ({
@@ -22,9 +23,9 @@ export const createDefaultManifest = (): SourcesManifest => ({
   },
   sources: {
     local: {
-      type: 'git',
-      url: 'https://github.com/maumenvi/maia-cli.git',
-      ref: 'ead0c40d67627cf9210619270d43b50c7c7a0c1d',
+      type: 'registry',
+      url: MAIA_PACKAGE_METADATA.source,
+      ref: MAIA_PACKAGE_METADATA.version,
       trusted: true,
     },
   },

@@ -54,6 +54,15 @@ const onMessage = (message) => {
 
   if (message.method === 'exit') {
     process.exit(0);
+    return;
+  }
+
+  if (typeof message.id === 'number') {
+    write({
+      jsonrpc: '2.0',
+      id: message.id,
+      error: { code: -32601, message: `Method not found: ${message.method}` },
+    });
   }
 };
 

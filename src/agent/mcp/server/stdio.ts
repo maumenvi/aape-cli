@@ -1,19 +1,22 @@
 import { createInterface } from 'node:readline';
 import type { AgentCatalogStore } from '../../catalog/store.ts';
 import { AgentMcpManager } from '../manager/index.ts';
-import type { JsonRpcRequest, JsonRpcResponse } from '../runtime/protocol/json-rpc.ts';
+import {
+  createModernResultMeta,
+  MCP_MODERN_PROTOCOL_VERSION,
+  negotiateMcpProtocolVersion,
+  readModernRequestMeta,
+  type JsonRpcFailure,
+  type JsonRpcId,
+  type JsonRpcRequest,
+  type JsonRpcResponse,
+} from '../runtime/protocol/json-rpc.ts';
 import { collectAllTools } from './collect.ts';
+import type { McpStdioServerOptions } from './mcp-stdio-server-options.ts';
 import { routeToolCall } from './router.ts';
 import type { McpInitializeParams, McpToolEntry } from './types.ts';
-import { negotiateMcpProtocolVersion } from '../runtime/protocol/json-rpc.ts';
 
-export interface McpStdioServerOptions {
-  name?: string;
-  version?: string;
-  /** Re-discover tools on every tools/list request (default: false). */
-  dynamicDiscovery?: boolean;
-}
-
+/** Serves installed Maia tools over both modern stateless and legacy stateful MCP. */
 export class McpStdioServer {
   private readonly catalog: AgentCatalogStore;
   private readonly mcpManager: AgentMcpManager;
@@ -22,6 +25,7 @@ export class McpStdioServer {
   private readonly dynamicDiscovery: boolean;
   private cachedTools: McpToolEntry[] = [];
 
+  /** Creates a dual-era aggregate server backed by the supplied catalog. */
   constructor(catalog: AgentCatalogStore, options: McpStdioServerOptions = {}) {
     this.catalog = catalog;
     this.mcpManager = new AgentMcpManager(catalog);
@@ -30,10 +34,9 @@ export class McpStdioServer {
     this.dynamicDiscovery = options.dynamicDiscovery ?? false;
   }
 
+  /** Starts newline-delimited JSON-RPC processing on stdin/stdout. */
   async start(): Promise<void> {
-    // Pre-warm tool cache
     this.cachedTools = await collectAllTools(this.catalog, this.mcpManager);
-
     const rl = createInterface({ input: process.stdin, terminal: false });
 
     rl.on('line', async (line) => {
@@ -60,57 +63,113 @@ export class McpStdioServer {
     });
   }
 
+  /** Writes one JSON-RPC response without contaminating stdout framing. */
   private send(payload: JsonRpcResponse): void {
     process.stdout.write(`${JSON.stringify(payload)}\n`);
   }
 
+  /** Routes one request according to its modern metadata or legacy lifecycle. */
   private async handle(request: JsonRpcRequest): Promise<JsonRpcResponse | null> {
     const { id, method, params } = request;
+    const modernVersion = this.readRequestedModernVersion(params);
+    const modern = typeof modernVersion === 'string';
+
+    if (modernVersion && modernVersion !== MCP_MODERN_PROTOCOL_VERSION) {
+      return this.unsupportedProtocol(id, modernVersion);
+    }
 
     try {
-      switch (method) {
-        case 'initialize':
-          return this.handleInitialize(id, params as McpInitializeParams);
-
-        case 'initialized':
-          // Notification — no response
-          return null;
-
-        case 'ping':
-          return { jsonrpc: '2.0', id, result: {} };
-
-        case 'tools/list':
-          return await this.handleToolsList(id);
-
-        case 'tools/call':
-          return await this.handleToolsCall(id, params as { name: string; arguments?: Record<string, unknown> });
-
-        case 'shutdown':
-          await this.mcpManager.shutdownAll();
-          return { jsonrpc: '2.0', id, result: {} };
-
-        default:
-          return {
-            jsonrpc: '2.0',
-            id,
-            error: { code: -32601, message: `Method not found: ${method}` },
-          };
+      if (method === 'server/discover') {
+        readModernRequestMeta(params);
+        return this.handleDiscover(id);
       }
-    } catch (err) {
+      if (method === 'initialize') {
+        return this.handleInitialize(id, params as McpInitializeParams);
+      }
+      if (method === 'notifications/initialized') {
+        return null;
+      }
+      if (method === 'tools/list') {
+        if (modern) readModernRequestMeta(params);
+        return await this.handleToolsList(id, modern);
+      }
+      if (method === 'tools/call') {
+        if (modern) readModernRequestMeta(params);
+        return await this.handleToolsCall(
+          id,
+          params as { name: string; arguments?: Record<string, unknown> },
+          modern,
+        );
+      }
+      if (!modern && method === 'ping') {
+        return { jsonrpc: '2.0', id, result: {} };
+      }
+      if (!modern && method === 'shutdown') {
+        await this.mcpManager.shutdownAll();
+        return { jsonrpc: '2.0', id, result: {} };
+      }
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32601, message: `Method not found: ${method}` },
+      };
+    } catch (error) {
       return {
         jsonrpc: '2.0',
         id,
         error: {
-          code: -32603,
-          message: err instanceof Error ? err.message : String(err),
+          code: modern ? -32602 : -32603,
+          message: error instanceof Error ? error.message : String(error),
         },
       };
     }
   }
 
-  private handleInitialize(id: number, params: McpInitializeParams): JsonRpcResponse {
-    const protocolVersion = negotiateMcpProtocolVersion(params?.protocolVersion);
+  /** Reads a per-request modern protocol revision without accepting incomplete metadata. */
+  private readRequestedModernVersion(params: unknown): string | undefined {
+    if (!params || typeof params !== 'object') return undefined;
+    const meta = (params as { _meta?: unknown })._meta;
+    if (!meta || typeof meta !== 'object') return undefined;
+    const version = (meta as Record<string, unknown>)['io.modelcontextprotocol/protocolVersion'];
+    return typeof version === 'string' ? version : undefined;
+  }
 
+  /** Returns the protocol-defined modern unsupported-version error. */
+  private unsupportedProtocol(id: JsonRpcId, requested: string): JsonRpcFailure {
+    return {
+      jsonrpc: '2.0',
+      id,
+      error: {
+        code: -32022,
+        message: `Unsupported MCP protocol version ${requested}`,
+        data: {
+          supported: [MCP_MODERN_PROTOCOL_VERSION],
+          requested,
+        },
+      },
+    };
+  }
+
+  /** Advertises the modern stateless era, tool capability, and server identity. */
+  private handleDiscover(id: JsonRpcId): JsonRpcResponse {
+    return {
+      jsonrpc: '2.0',
+      id,
+      result: {
+        resultType: 'complete',
+        supportedVersions: [MCP_MODERN_PROTOCOL_VERSION],
+        capabilities: { tools: {} },
+        instructions: 'Discovers and invokes tools installed in the current Maia workspace.',
+        ttlMs: 60_000,
+        cacheScope: 'private',
+        _meta: createModernResultMeta(this.serverName, this.serverVersion),
+      },
+    };
+  }
+
+  /** Negotiates a supported stateful protocol revision. */
+  private handleInitialize(id: JsonRpcId, params: McpInitializeParams): JsonRpcResponse {
+    const protocolVersion = negotiateMcpProtocolVersion(params?.protocolVersion);
     return {
       jsonrpc: '2.0',
       id,
@@ -122,26 +181,34 @@ export class McpStdioServer {
     };
   }
 
-  private async handleToolsList(id: number): Promise<JsonRpcResponse> {
+  /** Returns currently installed tools in the response shape required by the selected era. */
+  private async handleToolsList(id: JsonRpcId, modern: boolean): Promise<JsonRpcResponse> {
     if (this.dynamicDiscovery) {
       this.cachedTools = await collectAllTools(this.catalog, this.mcpManager);
     }
+    const tools = this.cachedTools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+    }));
     return {
       jsonrpc: '2.0',
       id,
-      result: {
-        tools: this.cachedTools.map((t) => ({
-          name: t.name,
-          description: t.description,
-          inputSchema: t.inputSchema,
-        })),
-      },
+      result: modern
+        ? {
+            resultType: 'complete',
+            tools,
+            _meta: createModernResultMeta(this.serverName, this.serverVersion),
+          }
+        : { tools },
     };
   }
 
+  /** Invokes an installed tool and stamps modern result metadata when required. */
   private async handleToolsCall(
-    id: number,
+    id: JsonRpcId,
     params: { name: string; arguments?: Record<string, unknown> },
+    modern: boolean,
   ): Promise<JsonRpcResponse> {
     const result = await routeToolCall(
       params.name,
@@ -149,13 +216,16 @@ export class McpStdioServer {
       this.catalog,
       this.mcpManager,
     );
-    return { jsonrpc: '2.0', id, result };
+    return {
+      jsonrpc: '2.0',
+      id,
+      result: modern
+        ? {
+            ...result,
+            resultType: 'complete',
+            _meta: createModernResultMeta(this.serverName, this.serverVersion),
+          }
+        : result,
+    };
   }
-}
-
-export function createMcpStdioServer(
-  catalog: AgentCatalogStore,
-  options?: McpStdioServerOptions,
-): McpStdioServer {
-  return new McpStdioServer(catalog, options);
 }
