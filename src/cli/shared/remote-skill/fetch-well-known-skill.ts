@@ -1,4 +1,4 @@
-import type { CatalogSource } from '../../../agent/catalog/types/index.ts';
+import type { CatalogSource } from '../../../agent/catalog/types/source/catalog-source.ts';
 import { fetchText } from './fetch-text.ts';
 
 /** Fetches a skill from the standardized `.well-known` locations. */

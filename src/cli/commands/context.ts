@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { parseFlags } from '../shared/flags.ts';
-import type { CommandHandler } from '../types.ts';
 
+import type { CommandHandler } from '../contracts/command-handler.ts';
+import { parseFlags } from '../shared/flags/parse-flags.ts';
+
+/** Performs the context command operation. */
 export const contextCommand: CommandHandler = async (args, { store }) => {
   const action = args[0] ?? 'build';
   if (action === 'build') {

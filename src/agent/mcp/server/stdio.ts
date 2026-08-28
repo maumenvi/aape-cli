@@ -1,20 +1,21 @@
 import { createInterface } from 'node:readline';
-import type { AgentCatalogStore } from '../../catalog/store.ts';
-import { AgentMcpManager } from '../manager/index.ts';
-import {
-  createModernResultMeta,
-  MCP_MODERN_PROTOCOL_VERSION,
-  negotiateMcpProtocolVersion,
-  readModernRequestMeta,
-  type JsonRpcFailure,
-  type JsonRpcId,
-  type JsonRpcRequest,
-  type JsonRpcResponse,
-} from '../runtime/protocol/json-rpc.ts';
-import { collectAllTools } from './collect.ts';
+
+import type { AgentCatalogStore } from '../../catalog/store/agent-catalog-store.ts';
+import { AgentMcpManager } from '../manager/manager/agent-mcp-manager.ts';
+import { createModernResultMeta } from '../runtime/protocol/json-rpc/create-modern-result-meta.ts';
+import { isJsonRpcInboundMessage } from '../runtime/protocol/json-rpc/is-json-rpc-inbound-message.ts';
+import type { JsonRpcFailure } from '../runtime/protocol/json-rpc/json-rpc-failure.ts';
+import type { JsonRpcId } from '../runtime/protocol/json-rpc/json-rpc-id.ts';
+import type { JsonRpcInboundMessage } from '../runtime/protocol/json-rpc/json-rpc-inbound-message.ts';
+import type { JsonRpcResponse } from '../runtime/protocol/json-rpc/json-rpc-response.ts';
+import { negotiateMcpProtocolVersion } from '../runtime/protocol/json-rpc/negotiate-mcp-protocol-version.ts';
+import { MCP_MODERN_PROTOCOL_VERSION } from '../runtime/protocol/json-rpc/protocol-versions.ts';
+import { readModernRequestMeta } from '../runtime/protocol/json-rpc/read-modern-request-meta.ts';
+import { collectAllTools } from './collect/collect-all-tools.ts';
+import type { McpInitializeParams } from './contracts/mcp-initialize-params.ts';
+import type { McpToolEntry } from './contracts/mcp-tool-entry.ts';
 import type { McpStdioServerOptions } from './mcp-stdio-server-options.ts';
 import { routeToolCall } from './router.ts';
-import type { McpInitializeParams, McpToolEntry } from './types.ts';
 
 /** Serves installed Maia tools over both modern stateless and legacy stateful MCP. */
 export class McpStdioServer {
@@ -23,6 +24,7 @@ export class McpStdioServer {
   private readonly serverName: string;
   private readonly serverVersion: string;
   private readonly dynamicDiscovery: boolean;
+  private readonly agentId?: string;
   private cachedTools: McpToolEntry[] = [];
 
   /** Creates a dual-era aggregate server backed by the supplied catalog. */
@@ -32,26 +34,32 @@ export class McpStdioServer {
     this.serverName = options.name ?? 'maia-mcp-server';
     this.serverVersion = options.version ?? '1.0.0';
     this.dynamicDiscovery = options.dynamicDiscovery ?? false;
+    this.agentId = options.agentId;
   }
 
   /** Starts newline-delimited JSON-RPC processing on stdin/stdout. */
   async start(): Promise<void> {
-    this.cachedTools = await collectAllTools(this.catalog, this.mcpManager);
+    this.cachedTools = await collectAllTools(this.catalog, this.mcpManager, this.agentId);
     const rl = createInterface({ input: process.stdin, terminal: false });
 
     rl.on('line', async (line) => {
       const trimmed = line.trim();
       if (!trimmed) return;
 
-      let request: JsonRpcRequest;
+      let payload: unknown;
       try {
-        request = JSON.parse(trimmed) as JsonRpcRequest;
+        payload = JSON.parse(trimmed);
       } catch {
-        this.send({ jsonrpc: '2.0', id: 0, error: { code: -32700, message: 'Parse error' } });
+        this.send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
         return;
       }
 
-      const response = await this.handle(request);
+      if (!isJsonRpcInboundMessage(payload)) {
+        this.send({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Invalid Request' } });
+        return;
+      }
+
+      const response = await this.handle(payload);
       if (response !== null) {
         this.send(response);
       }
@@ -69,8 +77,9 @@ export class McpStdioServer {
   }
 
   /** Routes one request according to its modern metadata or legacy lifecycle. */
-  private async handle(request: JsonRpcRequest): Promise<JsonRpcResponse | null> {
-    const { id, method, params } = request;
+  private async handle(request: JsonRpcInboundMessage): Promise<JsonRpcResponse | null> {
+    const id = 'id' in request ? request.id : null;
+    const { method, params } = request;
     const modernVersion = this.readRequestedModernVersion(params);
     const modern = typeof modernVersion === 'string';
 
@@ -184,7 +193,7 @@ export class McpStdioServer {
   /** Returns currently installed tools in the response shape required by the selected era. */
   private async handleToolsList(id: JsonRpcId, modern: boolean): Promise<JsonRpcResponse> {
     if (this.dynamicDiscovery) {
-      this.cachedTools = await collectAllTools(this.catalog, this.mcpManager);
+      this.cachedTools = await collectAllTools(this.catalog, this.mcpManager, this.agentId);
     }
     const tools = this.cachedTools.map((tool) => ({
       name: tool.name,
@@ -215,6 +224,7 @@ export class McpStdioServer {
       params.arguments ?? {},
       this.catalog,
       this.mcpManager,
+      this.agentId,
     );
     return {
       jsonrpc: '2.0',

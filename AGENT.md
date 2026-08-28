@@ -72,10 +72,13 @@ tests/
 ## Development rules
 
 1. Keep the repository CLI-focused.
-2. Prefer targeted changes over broad refactors.
-3. Preserve current command behavior unless the task explicitly changes UX.
-4. Avoid adding dependencies unless they are clearly necessary.
-5. Validate with the existing `typecheck` and `test` scripts before concluding work.
+2. Keep each named top-level function, function-valued constant, class, interface, type alias, or enum in its own scoped file under `src/`.
+3. Import declarations directly from their owner files; do not add barrels, re-exports, or empty subclass compatibility shims.
+4. Group imports as Node built-ins, external packages, and project-relative modules, sorting each group alphabetically.
+5. Add JSDoc to functions, classes, and class/interface methods.
+6. Preserve current command behavior unless the task explicitly changes UX.
+7. Avoid adding dependencies unless they are clearly necessary.
+8. Validate with `typecheck`, `check:architecture`, and the test/coverage scripts before concluding work.
 
 ## Notes for future changes
 
@@ -115,4 +118,3 @@ Before assuming a capability exists, query it with:
 The project may register capabilities in the manifest while the active agent runtime only exposes a subset. Always prefer the CLI inventory for discovery.
 
 The built-in MCP server should also expose these discovery tools with clear descriptions so downstream agents can call them automatically without repeated prompting.
-

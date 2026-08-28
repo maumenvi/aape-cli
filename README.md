@@ -41,7 +41,7 @@ Maia has a single goal: make agent capability setup operational, reproducible, a
 
 That means this repository is centered on:
 
-- project initialization with `skills/`, `mcps/`, and `tools/`;
+- project initialization with centralized `.maia/skills`, `.maia/tools`, and MCP state;
 - agent/editor setup for one or many clients;
 - catalog-driven installation and lock/verify workflows;
 - a built-in MCP server that exposes installed capabilities.
@@ -86,6 +86,7 @@ Maia is useful in scenarios such as:
   - [Skills](#skills)
   - [MCP](#mcp)
   - [MCP credentials](#mcp-credentials)
+- [Security and source trust](#security-and-source-trust)
 - [Command reference](#command-reference)
   - [Catalog bootstrap](#catalog-bootstrap)
   - [npm-style installation](#npm-style-installation)
@@ -151,7 +152,7 @@ maia verify
 Typical result:
 
 - your project gets the Maia capability folders;
-- one or more agents are configured to consume the same MCP entrypoint;
+- each selected agent receives an identified MCP entrypoint and an authorization profile under `.maia/agents/<id>/`;
 - installed skills, MCPs, and tools become easier to version, share, and reproduce.
 
 Update the local CLI in this repository:
@@ -181,7 +182,7 @@ MCP entries are discovered from the configured registry (`provider: "mcp"`), by 
 
 - `https://registry.modelcontextprotocol.io`
 
-The built-in MCP runtime currently supports only the legacy `initialize`/`initialized` era, for protocol revisions `2025-06-18` and `2024-11-05`. MCP `2026-07-28` is a different, stateless wire protocol and is not implemented in this release. If a peer announces that modern revision (or any other unsupported revision), Maia rejects the connection instead of rewriting the negotiated version.
+The built-in MCP runtime negotiates the legacy `initialize`/`initialized` revisions `2025-06-18` and `2024-11-05`, and supports the modern stateless `2026-07-28` discovery flow. Unsupported revisions are rejected explicitly instead of being silently rewritten.
 
 For stdio and NPX servers, Maia passes only a small set of OS/runtime variables plus values explicitly declared in that MCP's `env` config. The rest of the parent process environment, including undeclared credentials, is not inherited.
 
@@ -196,9 +197,19 @@ In `maia mcp add` (or installation through selection in `find`):
 
 - detects required variables;
 - prompts for values without echoing secrets in the interactive terminal;
-- creates or updates the project's `.env.maia` file with only the variables referenced by installed MCP configs;
+- creates or updates `.maia/mcp.env` with only the variables referenced by installed MCP configs;
 - preserves custom entries and removes obsolete auto-generated defaults from older templates;
-- rebuilds those MCP variables during `maia install` and `maia ci` from `source.lock`, without overwriting the real project `.env`.
+- rebuilds those MCP variables during `maia install` and `maia ci` from `maia.lock.json`, without overwriting the real project `.env`.
+
+Opening an MCP transport reads only `.maia/mcp.env`; it does not load or modify the project's `.env`. Maia stores its manifest in `.maia/maia.json`, its lock in `.maia/maia.lock.json`, materialized capabilities under `.maia/skills` and `.maia/tools`, and per-agent authorization profiles under `.maia/agents`.
+
+Each native agent bootstrap runs `maia mcp-server --agent <id>`. This identity lets the aggregate MCP expose only the skills, tools, and proxied MCPs authorized for that selected agent. Native bootstrap files such as `.vscode/mcp.json` or `.codex/config.toml` remain in the client-required locations; all Maia-owned state stays under `.maia/`.
+
+## Security and source trust
+
+Remote sources default to untrusted. The `trusted` flag records a reviewed provenance decision; it does not sandbox or attest a package. Stdio and NPX entries execute with the current operating-system user's permissions, even though Maia limits inherited environment variables.
+
+Review executable commands and dependencies, prefer immutable refs, pin versions, restrict credentials and LLM access, and run CI in an isolated least-privilege environment. See the complete [security and trust policy](./SECURITY.md).
 
 ## Command reference
 
@@ -232,6 +243,8 @@ maia init claude vscode
 maia add claude copilot
 maia add agent claude cursor zed
 ```
+
+Selected agents are always persisted in `.maia/maia.json`; no additional save flag is required. Install and CI flows regenerate each saved agent profile and native MCP bootstrap.
 
 ### Skills
 
@@ -277,3 +290,9 @@ maia list-tools [query]
 maia rm <skill|mcp|tool> <name>
 maia version
 ```
+
+## Documentation in `/doc`
+
+- [Source architecture](./doc/architecture.md)
+- [Updated technical assessment](./doc/avaliação.md)
+- [Open follow-up items](./doc/falta.md)

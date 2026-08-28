@@ -1,9 +1,10 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
-import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
+import path from 'node:path';
+import { describe, it } from 'node:test';
+
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
 
 describe('AgentCatalogStore', () => {
   it('enables strict source verification in new manifests', () => {
@@ -16,13 +17,13 @@ describe('AgentCatalogStore', () => {
       assert.equal(manifest.sources.local.type, 'registry');
       assert.equal(manifest.sources.local.url, 'npm:@maumenvi/maia-cli');
       assert.equal(manifest.sources.local.ref, '1.5.2');
-      assert.throws(() => store.verifyLockMetadata(null), /source.lock not found/);
+      assert.throws(() => store.verifyLockMetadata(null), /maia.lock.json not found/);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  it('creates sources and source.lock from dependencies', () => {
+  it('creates sources and maia.lock.json from dependencies', () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-catalog-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
@@ -127,7 +128,7 @@ describe('AgentCatalogStore', () => {
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveManifest(store.loadManifest());
 
-      const skillPath = path.resolve(tempDir, 'skills', 'repo_overview.ts');
+      const skillPath = path.resolve(tempDir, '.maia', 'skills', 'repo_overview.ts');
       mkdirSync(path.dirname(skillPath), { recursive: true });
       writeFileSync(skillPath, 'export const skill = { execute: async () => ({ ok: true }) };\n', 'utf8');
 
@@ -155,7 +156,7 @@ describe('AgentCatalogStore', () => {
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveManifest(store.loadManifest());
 
-      const skillPath = path.resolve(tempDir, 'skills', 'repo_overview.ts');
+      const skillPath = path.resolve(tempDir, '.maia', 'skills', 'repo_overview.ts');
       mkdirSync(path.dirname(skillPath), { recursive: true });
       writeFileSync(skillPath, 'export const skill = { execute: async () => ({ ok: true }) };\n', 'utf8');
 

@@ -1,15 +1,16 @@
-import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { McpManager } from '../../src/agent/mcp/manager/index.ts';
-import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
 
-describe('McpManager', () => {
-  let manager: McpManager;
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { AgentMcpManager } from '../../src/agent/mcp/manager/manager/agent-mcp-manager.ts';
+
+describe('AgentMcpManager', () => {
+  let manager: AgentMcpManager;
   let tempDir: string;
   let fixturePath: string;
   let flakyFixturePath: string;
@@ -21,7 +22,7 @@ describe('McpManager', () => {
     flakyFixturePath = fileURLToPath(new URL('../fixtures/mcp/mock-flaky-call-server.mjs', import.meta.url));
     envFixturePath = fileURLToPath(new URL('../fixtures/mcp/mock-env-server.mjs', import.meta.url));
     const catalog = new AgentCatalogStore({ cwd: tempDir });
-    manager = new McpManager(catalog);
+    manager = new AgentMcpManager(catalog);
   });
 
   afterEach(async () => {
@@ -31,7 +32,7 @@ describe('McpManager', () => {
 
   describe('initialization', () => {
     it('creates empty manager', () => {
-      assert.ok(manager instanceof McpManager);
+      assert.ok(manager instanceof AgentMcpManager);
     });
 
     it('has add method', () => {
@@ -89,6 +90,7 @@ describe('McpManager', () => {
 
       const result = await manager.callTool('mock', 'echo', { text: 'hello' });
       assert.equal(result.content?.[0]?.text, 'hello');
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'mcp.env')), false);
 
       await manager.stopServer('mock');
       assert.equal(manager.describe().sessions.length, 0);
@@ -160,7 +162,7 @@ describe('McpManager', () => {
         },
       });
 
-      manager = new McpManager(new AgentCatalogStore({ cwd: tempDir }), {
+      manager = new AgentMcpManager(new AgentCatalogStore({ cwd: tempDir }), {
         maxRetries: 0,
         circuitFailureThreshold: 1,
         circuitOpenMs: 60_000,

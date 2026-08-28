@@ -1,10 +1,11 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
-import { installCommand } from '../../src/cli/commands/install.ts';
+import { describe, it } from 'node:test';
+
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { installCommand } from '../../src/cli/commands/install/install-command.ts';
 
 const FIND_SKILLS_MARKDOWN = `---
 name: find-skills
@@ -49,7 +50,7 @@ describe('Remote skill install', () => {
       assert.equal(pkg?.source, 'skillsHub');
       assert.equal(pkg?.path, 'skills/find-skills/SKILL.md');
 
-      const installedPath = path.resolve(tempDir, pkg?.path ?? '');
+      const installedPath = path.resolve(tempDir, '.maia', pkg?.path ?? '');
       assert.ok(existsSync(installedPath));
       assert.ok(readFileSync(installedPath, 'utf8').includes('# Find Skills'));
     } finally {
@@ -99,7 +100,7 @@ describe('Remote skill install', () => {
       assert.ok(lock);
       const pkg = lock?.packages['skill:sqlite-database-expert'];
       assert.ok(pkg);
-      const installedPath = path.resolve(tempDir, pkg?.path ?? '');
+      const installedPath = path.resolve(tempDir, '.maia', pkg?.path ?? '');
       assert.ok(existsSync(installedPath));
       assert.ok(readFileSync(installedPath, 'utf8').includes('# Find Skills'));
     } finally {

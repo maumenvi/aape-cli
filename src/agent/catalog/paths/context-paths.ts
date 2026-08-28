@@ -1,11 +1,12 @@
 import path from 'node:path';
 
-export function resolveContextPaths(manifestPath: string) {
-  const contextDir = path.resolve(path.dirname(manifestPath), '.maia');
+/** Performs the resolve context paths operation. */
+export function resolveContextPaths(projectRoot: string, stateDir: string) {
+  const contextDir = stateDir;
   return {
     contextDir,
     contextDev: path.resolve(contextDir, 'context.dev.json'),
     contextLlm: path.resolve(contextDir, 'context.llm.json'),
-    vscodeMcp: path.resolve(path.dirname(manifestPath), '.vscode', 'mcp.json'),
+    vscodeMcp: path.resolve(projectRoot, '.vscode', 'mcp.json'),
   };
 }

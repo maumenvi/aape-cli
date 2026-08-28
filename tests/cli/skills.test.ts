@@ -1,10 +1,12 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
-import { discoverSkillsFromStore, runSkillsCli } from '../../src/cli/commands/skills.ts';
+import { describe, it } from 'node:test';
+
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { discoverSkillsFromStore } from '../../src/cli/commands/skills/discover-skills-from-store.ts';
+import { runSkillsCli } from '../../src/cli/commands/skills/run-skills-cli.ts';
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567';
 const SKILL_MARKDOWN = `---
@@ -116,7 +118,7 @@ describe('CLI skills', () => {
       const code = await runSkillsCli(['add', 'find-skills'], spawnFn, false, { store });
 
       assert.equal(code, 0);
-      assert.ok(existsSync(path.resolve(tempDir, 'skills', 'find-skills', 'SKILL.md')));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'skills', 'find-skills', 'SKILL.md')));
       const lock = store.loadLock();
       assert.equal(lock?.sources['github:vercel-labs/skills']?.commit, COMMIT);
       assert.equal(lock?.sources['github:vercel-labs/skills']?.commitResolved, true);
@@ -155,7 +157,7 @@ describe('CLI skills', () => {
       }, false, { store });
 
       assert.equal(code, 0);
-      assert.ok(existsSync(path.resolve(tempDir, 'skills', 'sqlite-database-expert', 'SKILL.md')));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'skills', 'sqlite-database-expert', 'SKILL.md')));
     } finally {
       globalThis.fetch = originalFetch;
       rmSync(tempDir, { recursive: true, force: true });
@@ -199,7 +201,7 @@ describe('CLI skills', () => {
       }, false, { store });
 
       assert.equal(code, 0);
-      assert.ok(existsSync(path.resolve(tempDir, 'skills', 'sqlite-expert', 'SKILL.md')));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'skills', 'sqlite-expert', 'SKILL.md')));
     } finally {
       globalThis.fetch = originalFetch;
       rmSync(tempDir, { recursive: true, force: true });
@@ -249,7 +251,7 @@ describe('CLI skills', () => {
       }, false, { store });
 
       assert.equal(code, 0);
-      assert.ok(existsSync(path.resolve(tempDir, 'skills', 'find-skills', 'SKILL.md')));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'skills', 'find-skills', 'SKILL.md')));
     } finally {
       globalThis.fetch = originalFetch;
       rmSync(tempDir, { recursive: true, force: true });

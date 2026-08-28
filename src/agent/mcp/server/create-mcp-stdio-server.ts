@@ -1,4 +1,4 @@
-import type { AgentCatalogStore } from '../../catalog/store.ts';
+import type { AgentCatalogStore } from '../../catalog/store/agent-catalog-store.ts';
 import type { McpStdioServerOptions } from './mcp-stdio-server-options.ts';
 import { McpStdioServer } from './stdio.ts';
 

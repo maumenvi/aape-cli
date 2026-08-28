@@ -1,7 +1,7 @@
-import { parseGitHubRepository } from '../../../agent/catalog/providers/github.ts';
-import type { CatalogSource } from '../../../agent/catalog/types/index.ts';
-import { fetchGitHubSkill } from './fetch-github-skill.ts';
+import { parseGitHubRepository } from '../../../agent/catalog/providers/github/parse-git-hub-repository.ts';
+import type { CatalogSource } from '../../../agent/catalog/types/source/catalog-source.ts';
 import { fetchGitSkill } from './fetch-git-skill.ts';
+import { fetchGitHubSkill } from './fetch-github-skill.ts';
 import { fetchWellKnownSkill } from './fetch-well-known-skill.ts';
 
 const SKILL_NAME_PATTERN = /^[A-Za-z0-9._-]+$/;

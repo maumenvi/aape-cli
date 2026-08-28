@@ -1,10 +1,11 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
-import { listToolsCommand } from '../../src/cli/commands/list-tools.ts';
+import { describe, it } from 'node:test';
+
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { listToolsCommand } from '../../src/cli/commands/list-tools/list-tools-command.ts';
 
 describe('CLI list-tools', () => {
   it('prints local capability inventory without remote discovery', async () => {
@@ -42,7 +43,7 @@ describe('CLI list-tools', () => {
     assert.match(rendered, /maia list-tools <query>/);
   });
 
-  it('does not create source.lock when only reading discovery data', async () => {
+  it('does not create maia.lock.json when only reading discovery data', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-list-tools-readonly-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
@@ -50,8 +51,8 @@ describe('CLI list-tools', () => {
 
       await listToolsCommand([], { store });
 
-      assert.equal(existsSync(path.resolve(tempDir, 'source.lock')), false);
-      assert.equal(existsSync(path.resolve(tempDir, '.env.maia')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'mcp.env')), false);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
@@ -220,7 +221,7 @@ describe('CLI list-tools', () => {
         output.push(args.join(' '));
       };
 
-      const { listCapabilitiesCommand } = await import('../../src/cli/commands/list-capabilities.ts');
+      const { listCapabilitiesCommand } = await import('../../src/cli/commands/list-capabilities/list-capabilities-command.ts');
       await listCapabilitiesCommand(['react', '--json'], { store });
     } finally {
       globalThis.fetch = originalFetch;

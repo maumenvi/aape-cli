@@ -1,6 +1,7 @@
-import type { AgentCatalogStore } from '../../catalog/store.ts';
-import { AgentMcpManager } from '../manager/index.ts';
-import type { McpCallToolResult } from '../runtime/protocol/json-rpc.ts';
+import type { AgentCatalogStore } from '../../catalog/store/agent-catalog-store.ts';
+import { canLlmAccessResource } from '../../access/policy/can-llm-access-resource.ts';
+import { AgentMcpManager } from '../manager/manager/agent-mcp-manager.ts';
+import type { McpCallToolResult } from '../runtime/protocol/json-rpc/mcp-call-tool-result.ts';
 
 /**
  * Route a tool call to its origin package.
@@ -14,13 +15,14 @@ export async function routeToolCall(
   args: Record<string, unknown>,
   catalog: AgentCatalogStore,
   mcpManager: AgentMcpManager,
+  agentId?: string,
 ): Promise<McpCallToolResult> {
   // MCP proxied tool: name contains double underscore separator
   const sep = toolName.indexOf('__');
   if (sep !== -1) {
     const serverName = toolName.substring(0, sep);
     const mcpToolName = toolName.substring(sep + 2);
-    return mcpManager.callTool(serverName, mcpToolName, args);
+    return mcpManager.callTool(serverName, mcpToolName, args, { llmId: agentId });
   }
 
   // Skill or tool package
@@ -32,6 +34,20 @@ export async function routeToolCall(
     return {
       isError: true,
       content: [{ type: 'text', text: `Tool "${toolName}" not found in maia catalog.` }],
+    };
+  }
+
+  if (!canLlmAccessResource(
+    agentId,
+    pkg.type,
+    pkg.name,
+    undefined,
+    pkg.allowedLlms,
+    catalog.getLlmAccessDefault(),
+  )) {
+    return {
+      isError: true,
+      content: [{ type: 'text', text: `Tool "${toolName}" is not allowed for agent "${agentId ?? 'unknown'}".` }],
     };
   }
 

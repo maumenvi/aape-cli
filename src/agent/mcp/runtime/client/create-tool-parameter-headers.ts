@@ -1,4 +1,4 @@
-import type { McpToolDescriptor } from '../protocol/json-rpc.ts';
+import type { McpToolDescriptor } from '../protocol/json-rpc/mcp-tool-descriptor.ts';
 import { encodeMcpHeaderValue } from '../transport/shared/encode-mcp-header-value.ts';
 
 /** Mirrors tool arguments selected by `x-mcp-header` schema annotations into safe HTTP headers. */

@@ -1,5 +1,5 @@
-import type { McpRequestOptions } from '../../contracts/types.ts';
-import { MCP_MODERN_PROTOCOL_VERSION } from '../../protocol/json-rpc.ts';
+import type { McpRequestOptions } from '../../contracts/mcp-request-options.ts';
+import { MCP_MODERN_PROTOCOL_VERSION } from '../../protocol/json-rpc/protocol-versions.ts';
 import { encodeMcpHeaderValue } from './encode-mcp-header-value.ts';
 
 /** Creates the protocol, routing, and caller-provided headers required by MCP HTTP. */

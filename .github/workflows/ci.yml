@@ -28,8 +28,11 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Run tests
-        run: npm test
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Check source architecture
+        run: npm run check:architecture
 
       - name: Package CLI
         run: npm pack

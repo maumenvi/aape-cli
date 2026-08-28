@@ -1,10 +1,15 @@
 import path from 'node:path';
-import type { CatalogStoreOptions } from '../types/index.ts';
 
+import type { CatalogStoreOptions } from '../types/store/catalog-store-options.ts';
+
+/** Performs the resolve manifest and lock paths operation. */
 export function resolveManifestAndLockPaths(options: CatalogStoreOptions = {}) {
-  const cwd = options.cwd ?? process.cwd();
+  const projectRoot = path.resolve(options.cwd ?? process.cwd());
+  const stateDir = path.resolve(projectRoot, '.maia');
   return {
-    manifest: path.resolve(cwd, options.manifestFile ?? 'sources'),
-    lock: path.resolve(cwd, options.lockFile ?? 'source.lock'),
+    projectRoot,
+    stateDir,
+    manifest: path.resolve(projectRoot, options.manifestFile ?? path.join('.maia', 'maia.json')),
+    lock: path.resolve(projectRoot, options.lockFile ?? path.join('.maia', 'maia.lock.json')),
   };
 }

@@ -1,9 +1,12 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { removeMaterializedFile, resolveWorkspaceRoot } from '../shared/workspace.ts';
-import { normalizeKind } from '../shared/kind.ts';
-import type { CommandHandler } from '../types.ts';
 
+import type { CommandHandler } from '../contracts/command-handler.ts';
+import { normalizeKind } from '../shared/kind.ts';
+import { removeMaterializedFile } from '../shared/workspace/remove-materialized-file.ts';
+import { resolveWorkspaceRoot } from '../shared/workspace/resolve-workspace-root.ts';
+
+/** Performs the remove command operation. */
 export const removeCommand: CommandHandler = async (args, { store }) => {
   const kind = normalizeKind(args[0] ?? '');
   const name = args[1];

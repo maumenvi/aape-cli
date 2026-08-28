@@ -1,5 +1,6 @@
-import { McpTransportError, type McpTransport } from '../contracts/types.ts';
-import { McpJsonRpcError } from '../protocol/json-rpc.ts';
+import { McpTransportError } from '../contracts/mcp-transport-error.ts';
+import type { McpTransport } from '../contracts/mcp-transport.ts';
+import { McpJsonRpcError } from '../protocol/json-rpc/mcp-json-rpc-error.ts';
 
 /** Classifies failed modern probes without downgrading recognized modern protocol errors. */
 export function shouldFallbackToLegacy(error: unknown, transport: McpTransport): boolean {

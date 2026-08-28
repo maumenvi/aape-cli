@@ -1,5 +1,5 @@
-import type { McpProtocolVersion } from './mcp-protocol-version.ts';
 import { isSupportedMcpProtocolVersion } from './is-supported-mcp-protocol-version.ts';
+import type { McpProtocolVersion } from './mcp-protocol-version.ts';
 import { MCP_PROTOCOL_VERSIONS } from './protocol-versions.ts';
 
 /** Returns a supported revision or fails with the complete implemented-version list. */

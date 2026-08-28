@@ -1,12 +1,14 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
-import { McpStdioServer } from '../../src/agent/mcp/server/index.ts';
-import type { JsonRpcRequest, JsonRpcResponse } from '../../src/agent/mcp/runtime/protocol/json-rpc.ts';
+
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import type { JsonRpcRequest } from '../../src/agent/mcp/runtime/protocol/json-rpc/json-rpc-request.ts';
+import type { JsonRpcResponse } from '../../src/agent/mcp/runtime/protocol/json-rpc/json-rpc-response.ts';
+import { McpStdioServer } from '../../src/agent/mcp/server/stdio.ts';
 
 async function invoke(server: McpStdioServer, request: JsonRpcRequest): Promise<JsonRpcResponse | null> {
   const handle = Reflect.get(server as object, 'handle') as (req: JsonRpcRequest) => Promise<JsonRpcResponse | null>;
@@ -34,9 +36,26 @@ describe('McpStdioServer', () => {
           env: {},
         },
       });
+      store.addDependency('mcp', 'claude-only-mcp', {
+        version: '*',
+        source: 'local',
+        enabled: true,
+        capabilities: [],
+        constraints: [],
+        allowedLlms: ['claude'],
+        vscode: { command: 'node', args: [fixturePath], env: {} },
+      });
+      store.addDependency('skill', 'codex-skill', {
+        version: '*', source: 'local', enabled: true, capabilities: [], constraints: [],
+        allowedLlms: ['codex'], path: 'skills/codex-skill.md',
+      });
+      store.addDependency('skill', 'claude-skill', {
+        version: '*', source: 'local', enabled: true, capabilities: [], constraints: [],
+        allowedLlms: ['claude'], path: 'skills/claude-skill.md',
+      });
       store.buildLock();
 
-      const server = new McpStdioServer(store, { dynamicDiscovery: true, version: '1.5.2-test' });
+      const server = new McpStdioServer(store, { agentId: 'codex', dynamicDiscovery: true, version: '1.5.2-test' });
 
       const initialize = await invoke(server, { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} });
       assert.ok(initialize && 'result' in initialize);
@@ -115,7 +134,11 @@ describe('McpStdioServer', () => {
         throw new Error('Expected tools/list result');
       }
       assert.equal(Array.isArray((toolsList.result as { tools: unknown[] }).tools), true);
-      assert.equal((toolsList.result as { tools: Array<{ name: string }> }).tools[0]?.name, 'mock__echo');
+      const toolNames = (toolsList.result as { tools: Array<{ name: string }> }).tools.map((tool) => tool.name);
+      assert.ok(toolNames.includes('mock__echo'));
+      assert.ok(toolNames.includes('codex-skill'));
+      assert.equal(toolNames.includes('claude-skill'), false);
+      assert.equal(toolNames.some((name) => name.startsWith('claude-only-mcp__')), false);
 
       const toolCall = await invoke(server, {
         jsonrpc: '2.0',

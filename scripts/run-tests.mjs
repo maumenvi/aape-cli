@@ -37,7 +37,16 @@ function removeEmptyDirectory(relativePath) {
 let exitCode = 0;
 
 try {
-  const result = spawnSync(process.execPath, ['--test'], {
+  const testArguments = process.argv.includes('--coverage')
+    ? [
+        '--test',
+        '--experimental-test-coverage',
+        '--test-coverage-lines=80',
+        '--test-coverage-branches=70',
+        '--test-coverage-functions=80',
+      ]
+    : ['--test'];
+  const result = spawnSync(process.execPath, testArguments, {
     cwd: rootDir,
     stdio: 'inherit',
     env: process.env,

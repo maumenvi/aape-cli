@@ -1,7 +1,10 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import type { CatalogStorePaths, SourceLock } from '../types/index.ts';
-import { normalizeAccessList } from '../../access/policy.ts';
 
+import { normalizeAccessList } from '../../access/policy/normalize-access-list.ts';
+import type { SourceLock } from '../types/lock/source-lock.ts';
+import type { CatalogStorePaths } from '../types/store/catalog-store-paths.ts';
+
+/** Performs the build catalog contexts operation. */
 export function buildCatalogContexts(paths: CatalogStorePaths, lock: SourceLock) {
   const dev = {
     generatedAt: new Date().toISOString(),

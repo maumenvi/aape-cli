@@ -1,4 +1,4 @@
-import type { MCPConfig } from '../../../tools/types.ts';
+import type { MCPConfig } from '../../../tools/contracts/mcp-config.ts';
 import type { McpClient } from './mcp-client.ts';
 import type { McpSessionStatus } from './mcp-session-status.ts';
 import type { McpTransport } from './mcp-transport.ts';

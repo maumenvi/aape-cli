@@ -1,5 +1,5 @@
-import { parseGitHubRepository } from '../../../agent/catalog/providers/github.ts';
-import type { CatalogSource } from '../../../agent/catalog/types/index.ts';
+import { parseGitHubRepository } from '../../../agent/catalog/providers/github/parse-git-hub-repository.ts';
+import type { CatalogSource } from '../../../agent/catalog/types/source/catalog-source.ts';
 import { discoverGitHubSkillPath } from './discover-github-skill-path.ts';
 import { fetchText } from './fetch-text.ts';
 

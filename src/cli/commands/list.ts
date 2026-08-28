@@ -1,6 +1,7 @@
+import type { CommandHandler } from '../contracts/command-handler.ts';
 import { normalizeKind } from '../shared/kind.ts';
-import type { CommandHandler } from '../types.ts';
 
+/** Performs the list command operation. */
 export const listCommand: CommandHandler = async (args, { store }) => {
   const rawKind = args[0];
   const kind = rawKind ? normalizeKind(rawKind) : undefined;

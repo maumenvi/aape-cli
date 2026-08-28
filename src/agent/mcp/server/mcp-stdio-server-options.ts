@@ -3,5 +3,5 @@ export interface McpStdioServerOptions {
   name?: string;
   version?: string;
   dynamicDiscovery?: boolean;
+  agentId?: string;
 }
-

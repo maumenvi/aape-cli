@@ -1,12 +1,13 @@
-import { spawnSync } from 'node:child_process';
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
-import { installCommand } from '../../src/cli/commands/install.ts';
+
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { installCommand } from '../../src/cli/commands/install/install-command.ts';
 import { removeCommand } from '../../src/cli/commands/remove.ts';
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567';
@@ -20,7 +21,7 @@ description: Finds external skills.
 `;
 
 describe('CLI install/remove', () => {
-  it('bootstraps source.lock when called without a dependency type', async () => {
+  it('bootstraps maia.lock.json when called without a dependency type', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-bootstrap-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
@@ -28,34 +29,35 @@ describe('CLI install/remove', () => {
 
       await installCommand([], { store });
 
-      assert.ok(existsSync(path.resolve(tempDir, 'source.lock')));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')));
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  it('creates source.lock and bootstraps the workspace on a fresh install', async () => {
+  it('creates maia.lock.json and bootstraps the workspace on a fresh install', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-fresh-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
       await installCommand(['mcp', 'github', '--transport', 'npx', '--package', '@modelcontextprotocol/server-github'], { store });
 
-      assert.ok(existsSync(path.resolve(tempDir, 'sources')));
-      assert.ok(existsSync(path.resolve(tempDir, 'source.lock')));
-      assert.ok(!existsSync(path.resolve(tempDir, 'skills')));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'maia.json')));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')));
+      assert.ok(!existsSync(path.resolve(tempDir, '.maia', 'skills')));
       assert.ok(!existsSync(path.resolve(tempDir, 'mcps')));
-      assert.ok(!existsSync(path.resolve(tempDir, 'tools')));
+      assert.ok(!existsSync(path.resolve(tempDir, '.maia', 'tools')));
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  it('materializes remote skills deterministically and syncs MCPs into .vscode/mcp.json', async () => {
+  it('materializes capabilities in .maia and updates the selected agent profile', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-cli-'));
     const originalFetch = globalThis.fetch;
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveManifest(store.loadManifest());
+      store.saveSelectedAgents(['copilot']);
       store.addSource('skillsHub', {
         type: 'git',
         url: 'https://github.com/vercel-labs/skills',
@@ -83,22 +85,25 @@ describe('CLI install/remove', () => {
       const skillPackage = lock?.packages['skill:find-skills'];
       assert.ok(skillPackage);
       assert.equal(skillPackage?.path, 'skills/find-skills/SKILL.md');
-      assert.ok(existsSync(path.resolve(tempDir, skillPackage?.path ?? '')));
-      assert.ok(readFileSync(path.resolve(tempDir, skillPackage?.path ?? ''), 'utf8').includes('# Find Skills'));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', skillPackage?.path ?? '')));
+      assert.ok(readFileSync(path.resolve(tempDir, '.maia', skillPackage?.path ?? ''), 'utf8').includes('# Find Skills'));
 
       const vscodeMcpFile = path.resolve(tempDir, '.vscode', 'mcp.json');
       assert.ok(existsSync(vscodeMcpFile));
-      assert.ok(readFileSync(vscodeMcpFile, 'utf8').includes('"github"'));
+      assert.match(readFileSync(vscodeMcpFile, 'utf8'), /--agent/);
+      const profileFile = path.resolve(tempDir, '.maia', 'agents', 'copilot', 'capabilities.json');
+      assert.match(readFileSync(profileFile, 'utf8'), /"github"/);
+      assert.match(readFileSync(profileFile, 'utf8'), /"find-skills"/);
 
       await removeCommand(['skill', 'find-skills'], { store });
-      assert.ok(!existsSync(path.resolve(tempDir, skillPackage?.path ?? '')));
+      assert.ok(!existsSync(path.resolve(tempDir, '.maia', skillPackage?.path ?? '')));
     } finally {
       globalThis.fetch = originalFetch;
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  it('supports the i alias with the same .env.maia rebuild behavior', async () => {
+  it('supports the i alias with the same isolated MCP env rebuild behavior', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-install-alias-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
@@ -115,7 +120,7 @@ describe('CLI install/remove', () => {
         }),
       ], { store });
 
-      const envFile = path.resolve(tempDir, '.env.maia');
+      const envFile = path.resolve(tempDir, '.maia', 'mcp.env');
       writeFileSync(envFile, 'SKILLS_REGISTRY_URL=https://skills.sh\nNODE_ENV=development\n', 'utf8');
 
       const result = spawnSync(process.execPath, [cliEntry, 'i'], {
@@ -163,7 +168,7 @@ describe('CLI install/remove', () => {
       const lock = store.loadLock();
       assert.ok(lock?.packages['tool:read_file']);
       assert.ok(lock?.packages['tool:read_file'].artifactHash);
-      assert.ok(existsSync(path.resolve(tempDir, lock?.packages['tool:read_file'].path ?? '')));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', lock?.packages['tool:read_file'].path ?? '')));
 
       process.chdir(tempDir);
       const runtime = await store.loadRuntimeModule('tool', 'read_file');
@@ -187,7 +192,8 @@ describe('CLI install/remove', () => {
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveManifest(store.loadManifest());
-      symlinkSync(externalDir, path.resolve(tempDir, 'tools'), 'dir');
+      mkdirSync(path.resolve(tempDir, '.maia'), { recursive: true });
+      symlinkSync(externalDir, path.resolve(tempDir, '.maia', 'tools'), 'dir');
 
       await assert.rejects(
         () => installCommand(['tool', 'read_file'], { store }),

@@ -1,10 +1,11 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
-import { listSkillsCommand } from '../../src/cli/commands/list-skills.ts';
+import { describe, it } from 'node:test';
+
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { listSkillsCommand } from '../../src/cli/commands/list-skills/list-skills-command.ts';
 
 describe('CLI list-skills', () => {
   it('prints installed and discoverable skills clearly', async () => {
@@ -38,7 +39,7 @@ describe('CLI list-skills', () => {
     assert.match(rendered, /maia list-skills <query>/);
   });
 
-  it('does not create source.lock when only reading skill discovery data', async () => {
+  it('does not create maia.lock.json when only reading skill discovery data', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-list-skills-readonly-'));
     try {
       const store = new AgentCatalogStore({ cwd: tempDir });
@@ -46,8 +47,8 @@ describe('CLI list-skills', () => {
 
       await listSkillsCommand([], { store });
 
-      assert.equal(existsSync(path.resolve(tempDir, 'source.lock')), false);
-      assert.equal(existsSync(path.resolve(tempDir, '.env.maia')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'mcp.env')), false);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }

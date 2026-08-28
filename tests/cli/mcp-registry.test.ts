@@ -1,13 +1,16 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
-import { installCommand } from '../../src/cli/commands/install.ts';
-import { discoverMcpsFromStore } from '../../src/cli/commands/mcp.ts';
-import { installCatalogResult } from '../../src/cli/install/external.ts';
-import { ensureProjectDotEnv, loadDotEnvFromCurrentProject } from '../../src/config/index.ts';
+import { describe, it } from 'node:test';
+
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { installCommand } from '../../src/cli/commands/install/install-command.ts';
+import { discoverMcpsFromStore } from '../../src/cli/commands/mcp/discover-mcps-from-store.ts';
+import { installCatalogResult } from '../../src/cli/install/external/install-catalog-result.ts';
+import { migrateLegacyMcpEnvFile } from '../../src/cli/install/mcp-credentials/migrate-legacy-mcp-env-file.ts';
+import { ensureMcpEnvFile } from '../../src/config/core/ensure-mcp-env-file.ts';
+import { loadMcpEnvFromCurrentProject } from '../../src/config/core/load-mcp-env-from-current-project.ts';
 
 function registryResponse(): Response {
   return Response.json({
@@ -42,7 +45,7 @@ function registryResponse(): Response {
 }
 
 describe('MCP Registry provider', () => {
-  it('normalizes and installs an npm MCP into the VS Code configuration', async () => {
+  it('normalizes an npm MCP into Maia state without creating unselected agent config', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-registry-'));
     const originalFetch = globalThis.fetch;
     try {
@@ -79,54 +82,86 @@ describe('MCP Registry provider', () => {
       assert.equal(lock?.sources.mcp?.type, 'registry');
 
       const vscodeFile = path.resolve(tempDir, '.vscode', 'mcp.json');
-      assert.ok(existsSync(vscodeFile));
-      const envFile = path.resolve(tempDir, '.env.maia');
+      assert.equal(existsSync(vscodeFile), false);
+      const envFile = path.resolve(tempDir, '.maia', 'mcp.env');
       assert.ok(existsSync(envFile));
       const envContent = readFileSync(envFile, 'utf8');
       assert.match(envContent, /FILESYSTEM_API_KEY=""/);
       assert.match(envContent, /FILESYSTEM_AUTHORIZATION=""/);
       assert.doesNotMatch(envContent, /^AUTHORIZATION=""/m);
-      const vscode = JSON.parse(readFileSync(vscodeFile, 'utf8')) as {
-       servers: Record<string, { args: string[]; env: Record<string, string> }>;
-      };
-      assert.deepEqual(vscode.servers['io.github.example/filesystem']?.args, [
-        '-y',
-        '@example/mcp-filesystem@1.2.3',
-      ]);
-      assert.equal(
-        vscode.servers['io.github.example/filesystem']?.env.WORKSPACE_ROOT,
-        '${env:WORKSPACE_ROOT}',
-      );
     } finally {
       globalThis.fetch = originalFetch;
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  it('creates a blank .env.maia template when the project env file is missing', () => {
+  it('does not create mcp.env while loading project configuration', () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-dotenv-bootstrap-'));
     const originalCwd = process.cwd();
 
     try {
       process.chdir(tempDir);
-      const envFile = path.resolve(tempDir, '.env.maia');
+      const envFile = path.resolve(tempDir, '.maia', 'mcp.env');
       assert.ok(!existsSync(envFile));
       assert.ok(!existsSync(path.resolve(tempDir, '.env')));
 
-      loadDotEnvFromCurrentProject();
+      loadMcpEnvFromCurrentProject();
 
-      assert.ok(existsSync(envFile));
-      const content = readFileSync(envFile, 'utf8');
-      assert.equal(content, '\n');
+      assert.equal(existsSync(envFile), false);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
+  it('loads only .maia/mcp.env and ignores the project .env', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-isolated-env-'));
+    const originalCwd = process.cwd();
+    const previousProjectValue = process.env.PROJECT_ONLY_SECRET;
+    const previousMcpValue = process.env.MCP_ONLY_SECRET;
+
+    try {
+      process.chdir(tempDir);
+      mkdirSync(path.resolve(tempDir, '.maia'), { recursive: true });
+      writeFileSync(path.resolve(tempDir, '.env'), 'PROJECT_ONLY_SECRET=project\n', 'utf8');
+      writeFileSync(path.resolve(tempDir, '.maia', 'mcp.env'), 'MCP_ONLY_SECRET=mcp\n', 'utf8');
+      delete process.env.PROJECT_ONLY_SECRET;
+      delete process.env.MCP_ONLY_SECRET;
+
+      loadMcpEnvFromCurrentProject();
+
+      assert.equal(process.env.PROJECT_ONLY_SECRET, undefined);
+      assert.equal(process.env.MCP_ONLY_SECRET, 'mcp');
+    } finally {
+      process.chdir(originalCwd);
+      if (previousProjectValue === undefined) delete process.env.PROJECT_ONLY_SECRET;
+      else process.env.PROJECT_ONLY_SECRET = previousProjectValue;
+      if (previousMcpValue === undefined) delete process.env.MCP_ONLY_SECRET;
+      else process.env.MCP_ONLY_SECRET = previousMcpValue;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('migrates legacy .env.maia values into the isolated MCP env file', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-legacy-env-'));
+    const target = path.resolve(tempDir, '.maia', 'mcp.env');
+    try {
+      writeFileSync(path.resolve(tempDir, '.env.maia'), 'LEGACY_MCP_TOKEN=secret\n', 'utf8');
+
+      migrateLegacyMcpEnvFile(tempDir, target);
+
+      assert.equal(existsSync(path.resolve(tempDir, '.env.maia')), false);
+      assert.match(readFileSync(target, 'utf8'), /^LEGACY_MCP_TOKEN="secret"$/m);
+      assert.equal(statSync(target).mode & 0o777, 0o600);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('keeps custom entries and removes legacy autogenerated defaults', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-dotenv-merge-'));
-    const envFile = path.resolve(tempDir, '.env.maia');
+    const envFile = path.resolve(tempDir, '.maia', 'mcp.env');
+    mkdirSync(path.dirname(envFile), { recursive: true });
     writeFileSync(
       envFile,
       [
@@ -138,8 +173,8 @@ describe('MCP Registry provider', () => {
       'utf8',
     );
 
-    ensureProjectDotEnv(envFile);
-    const { ensureLockMcpEnvFileEntries } = await import('../../src/cli/install/mcp-credentials.ts');
+    ensureMcpEnvFile(envFile);
+    const { ensureLockMcpEnvFileEntries } = await import('../../src/cli/install/mcp-credentials/ensure-lock-mcp-env-file-entries.ts');
     const store = new AgentCatalogStore({ cwd: tempDir });
     ensureLockMcpEnvFileEntries(store, {
       name: 'fixture',
@@ -170,7 +205,7 @@ describe('MCP Registry provider', () => {
         },
       };
 
-      const envFile = path.resolve(tempDir, '.env.maia');
+      const envFile = path.resolve(tempDir, '.maia', 'mcp.env');
       assert.ok(!existsSync(envFile));
       assert.ok(!existsSync(path.resolve(tempDir, '.env')));
 
@@ -180,7 +215,7 @@ describe('MCP Registry provider', () => {
         ref: 'v0.1',
         trusted: true,
       });
-      const { installMcp } = await import('../../src/cli/install/mcp.ts');
+      const { installMcp } = await import('../../src/cli/install/mcp/install-mcp.ts');
       installMcp(store, 'context7fork', 'mcp', '1.0.0', ['*'], config);
 
       assert.ok(existsSync(envFile));
@@ -205,10 +240,13 @@ describe('MCP Registry provider', () => {
       };
 
       const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveSelectedAgents(['copilot']);
       await installCommand(['mcp', 'filesystem'], { store });
 
       assert.ok(store.loadLock()?.packages['mcp:io.github.example/filesystem']);
       assert.ok(existsSync(path.resolve(tempDir, '.vscode', 'mcp.json')));
+      const profile = readFileSync(path.resolve(tempDir, '.maia', 'agents', 'copilot', 'capabilities.json'), 'utf8');
+      assert.match(profile, /io\.github\.example\/filesystem/);
     } finally {
       globalThis.fetch = originalFetch;
       rmSync(tempDir, { recursive: true, force: true });

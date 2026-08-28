@@ -1,6 +1,7 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { versionCommand } from '../../src/cli/commands/version.ts';
+import { describe, it } from 'node:test';
+
+import { versionCommand } from '../../src/cli/commands/version/version-command.ts';
 
 describe('CLI version', () => {
   it('prints the package version', async () => {

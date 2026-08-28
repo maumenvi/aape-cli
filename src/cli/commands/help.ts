@@ -1,5 +1,6 @@
-import type { CommandHandler } from '../types.ts';
+import type { CommandHandler } from '../contracts/command-handler.ts';
 
+/** Performs the help command operation. */
 export const helpCommand: CommandHandler = async () => {
   const lines = [
     'maia agent add <name...>',

@@ -12,9 +12,9 @@
   },
   "files": [
     "dist",
-    ".env.maia.example",
     "README.md",
     "README.pt-BR.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "keywords": [
@@ -40,6 +40,8 @@
     "build:publish": "node scripts/build-publish.mjs",
     "prepack": "npm run build:publish",
     "test": "node scripts/run-tests.mjs",
+    "test:coverage": "node scripts/run-tests.mjs --coverage",
+    "check:architecture": "node scripts/check-source-architecture.mjs",
     "typecheck": "tsc --noEmit"
   },
   "engines": {

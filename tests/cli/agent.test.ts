@@ -1,13 +1,15 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { agentRegistry } from '../../src/agent/agents/registry.ts';
-import { AgentCatalogStore } from '../../src/agent/catalog/store.ts';
-import { agentCommand } from '../../src/cli/commands/agent.ts';
-import { installCommand } from '../../src/cli/commands/install.ts';
-import { initCommand, parseAgentSelection } from '../../src/cli/commands/init.ts';
+import { describe, it } from 'node:test';
+
+import { agentRegistry } from '../../src/agent/agents/registry/agent-registry.ts';
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { agentCommand } from '../../src/cli/commands/agent/agent-command.ts';
+import { initCommand } from '../../src/cli/commands/init/init-command.ts';
+import { parseAgentSelection } from '../../src/cli/commands/init/parse-agent-selection.ts';
+import { installCommand } from '../../src/cli/commands/install/install-command.ts';
 
 describe('CLI agent/init', () => {
   it('parses multi-agent selections from interactive input', () => {
@@ -65,9 +67,13 @@ describe('CLI agent/init', () => {
 
       await initCommand(['claude,copilot', 'zed'], { store: new AgentCatalogStore({ cwd: tempDir }) });
 
-      assert.ok(existsSync(path.resolve(tempDir, 'source.lock')));
-      assert.ok(existsSync(path.resolve(tempDir, 'AGENTS.md')));
-      assert.match(readFileSync(path.resolve(tempDir, 'AGENTS.md'), 'utf8'), /list-capabilities --json/);
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'maia.json')));
+      assert.equal(existsSync(path.resolve(tempDir, 'sources')), false);
+      assert.equal(existsSync(path.resolve(tempDir, 'source.lock')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.env.maia')), false);
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'AGENTS.md')));
+      assert.match(readFileSync(path.resolve(tempDir, '.maia', 'AGENTS.md'), 'utf8'), /list-capabilities --json/);
 
       const claudeConfig = path.resolve(tempHome, '.config', 'claude', 'claude_desktop_config.json');
       const copilotConfig = path.resolve(tempHome, '.config', 'Code', 'User', 'mcp.json');
@@ -76,10 +82,10 @@ describe('CLI agent/init', () => {
       assert.ok(!existsSync(claudeConfig));
       assert.ok(!existsSync(copilotConfig));
       assert.ok(!existsSync(zedConfig));
-      assert.ok(existsSync(path.resolve(tempDir, 'AGENTS.md')));
-      assert.ok(!existsSync(path.resolve(tempDir, 'skills')));
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'AGENTS.md')));
+      assert.ok(!existsSync(path.resolve(tempDir, '.maia', 'skills')));
       assert.ok(!existsSync(path.resolve(tempDir, 'mcps')));
-      assert.ok(!existsSync(path.resolve(tempDir, 'tools')));
+      assert.ok(!existsSync(path.resolve(tempDir, '.maia', 'tools')));
     } finally {
       process.chdir(originalCwd);
       process.env.HOME = originalHome;
@@ -88,7 +94,7 @@ describe('CLI agent/init', () => {
     }
   });
 
-  it('persists selected agents to the project manifest when -save is used', async () => {
+  it('always persists selected agents without requiring -save', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-agent-save-'));
     const originalCwd = process.cwd();
     const store = new AgentCatalogStore({ cwd: tempDir });
@@ -96,14 +102,78 @@ describe('CLI agent/init', () => {
     try {
       process.chdir(tempDir);
 
-      await initCommand(['codex', '-save'], { store });
-      await agentCommand(['claude', '-save'], { store });
+      await initCommand(['codex'], { store });
+      await agentCommand(['claude'], { store });
 
       const manifest = JSON.parse(readFileSync(store.getPaths().manifest, 'utf8'));
       assert.ok(manifest.agents.codex);
       assert.equal(manifest.agents.codex.name, 'OpenAI Codex');
       assert.ok(manifest.agents.claude);
       assert.equal(manifest.agents.claude.name, 'Claude Desktop');
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'maia.json')), true);
+      assert.match(readFileSync(path.resolve(tempDir, '.codex', 'config.toml'), 'utf8'), /"--agent","codex"/);
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('migrates legacy catalog filenames to maia.json and maia.lock.json', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-catalog-migration-'));
+    const originalCwd = process.cwd();
+    const store = new AgentCatalogStore({ cwd: tempDir });
+
+    try {
+      process.chdir(tempDir);
+      writeFileSync(path.resolve(tempDir, 'sources'), `${JSON.stringify(store.loadManifest(), null, 2)}\n`, 'utf8');
+      writeFileSync(path.resolve(tempDir, 'source.lock'), `${JSON.stringify(store.buildLock(), null, 2)}\n`, 'utf8');
+      rmSync(store.getPaths().manifest, { force: true });
+      rmSync(store.getPaths().lock, { force: true });
+
+      await initCommand(['codex'], { store });
+
+      assert.equal(existsSync(path.resolve(tempDir, 'sources')), false);
+      assert.equal(existsSync(path.resolve(tempDir, 'source.lock')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'maia.json')), true);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')), true);
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes a security-filtered capability profile for every selected agent', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-agent-profiles-'));
+    const originalCwd = process.cwd();
+    const store = new AgentCatalogStore({ cwd: tempDir });
+
+    try {
+      process.chdir(tempDir);
+      store.saveManifest(store.loadManifest());
+      store.addDependency('skill', 'codex-only', {
+        version: '*', source: 'local', enabled: true, capabilities: [], constraints: [],
+        allowedLlms: ['codex'], path: 'skills/codex-only.md',
+      });
+      store.addDependency('tool', 'claude-only', {
+        version: '*', source: 'local', enabled: true, capabilities: [], constraints: [],
+        allowedLlms: ['claude'], path: 'tools/claude-only.mjs',
+      });
+      store.addDependency('mcp', 'shared-mcp', {
+        version: '*', source: 'local', enabled: true, capabilities: [], constraints: [],
+        allowedLlms: ['*'], vscode: { command: 'shared-mcp', args: [] },
+      });
+      store.buildLock();
+
+      await initCommand(['codex', 'claude'], { store });
+
+      const codex = JSON.parse(readFileSync(path.resolve(tempDir, '.maia', 'agents', 'codex', 'capabilities.json'), 'utf8'));
+      const claude = JSON.parse(readFileSync(path.resolve(tempDir, '.maia', 'agents', 'claude', 'capabilities.json'), 'utf8'));
+      assert.deepEqual(codex.skills.map((entry: { name: string }) => entry.name), ['codex-only']);
+      assert.deepEqual(codex.tools, []);
+      assert.deepEqual(claude.skills, []);
+      assert.deepEqual(claude.tools.map((entry: { name: string }) => entry.name), ['claude-only']);
+      assert.equal(codex.mcps[0]?.name, 'shared-mcp');
+      assert.equal(claude.mcps[0]?.name, 'shared-mcp');
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });
@@ -118,7 +188,7 @@ describe('CLI agent/init', () => {
     try {
       process.chdir(tempDir);
 
-      await initCommand(['codex', '-save'], { store });
+      await initCommand(['codex'], { store });
       const codexConfig = path.resolve(tempDir, '.codex', 'config.toml');
       rmSync(codexConfig, { force: true });
       rmSync(path.dirname(codexConfig), { recursive: true, force: true });
@@ -142,7 +212,7 @@ describe('CLI agent/init', () => {
 
     try {
       process.chdir(tempDir);
-      await initCommand(['copilot', '-save'], { store });
+      await initCommand(['copilot'], { store });
       const config = path.resolve(tempDir, '.vscode', 'mcp.json');
       rmSync(config, { force: true });
       rmSync(path.dirname(config), { recursive: true, force: true });

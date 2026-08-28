@@ -1,8 +1,10 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { JsonRpcMcpClient } from '../../src/agent/mcp/runtime/client/json-rpc-client.ts';
-import type { McpRequestOptions, McpTransport } from '../../src/agent/mcp/runtime/contracts/types.ts';
-import { McpJsonRpcError } from '../../src/agent/mcp/runtime/protocol/json-rpc.ts';
+import { describe, it } from 'node:test';
+
+import { JsonRpcMcpClient } from '../../src/agent/mcp/runtime/client/json-rpc-client/json-rpc-mcp-client.ts';
+import type { McpRequestOptions } from '../../src/agent/mcp/runtime/contracts/mcp-request-options.ts';
+import type { McpTransport } from '../../src/agent/mcp/runtime/contracts/mcp-transport.ts';
+import { McpJsonRpcError } from '../../src/agent/mcp/runtime/protocol/json-rpc/mcp-json-rpc-error.ts';
 
 class LegacyTransport implements McpTransport {
   readonly kind = 'custom' as const;

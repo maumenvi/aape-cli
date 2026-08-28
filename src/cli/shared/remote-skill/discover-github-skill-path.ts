@@ -1,4 +1,4 @@
-import { createGitHubHeaders } from '../../../agent/catalog/providers/github.ts';
+import { createGitHubHeaders } from '../../../agent/catalog/providers/github/create-git-hub-headers.ts';
 import type { GitHubTreeEntry } from './github-tree-entry.ts';
 import { selectSkillPath } from './select-skill-path.ts';
 

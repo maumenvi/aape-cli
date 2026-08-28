@@ -1,3 +1,4 @@
+/** Performs the safe parse json operation. */
 export const safeParseJson = <T>(raw: string, filePath: string): T => {
   try {
     return JSON.parse(raw) as T;

@@ -4,7 +4,5 @@ dist/
 .env
 .env.*
 !.env.example
-!.env.maia.example
-.sources
+.maia/mcp.env
 .source.*
-doc/
