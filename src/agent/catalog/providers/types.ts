@@ -1,53 +1,7 @@
-import type { MCPConfig } from '../../tools/types.ts';
-import type { CatalogKind, CatalogSource } from '../types/index.ts';
-
-export interface GitHubSkillInstall {
-  type: 'github';
-  repository: string;
-  skill: string;
-}
-
-export interface WellKnownSkillInstall {
-  type: 'well-known';
-  baseUrl: string;
-  skill: string;
-}
-
-export interface McpInstall {
-  type: 'mcp';
-  vscode: MCPConfig;
-}
-
-export type CatalogInstall = GitHubSkillInstall | WellKnownSkillInstall | McpInstall;
-
-export interface CatalogSearchResult {
-  id: string;
-  kind: CatalogKind;
-  name: string;
-  displayName: string;
-  description?: string;
-  provider: string;
-  source: string;
-  version?: string;
-  installs?: number;
-  credentials?: Array<{
-    name: string;
-    envName?: string;
-    description?: string;
-    sourceUrl?: string;
-  }>;
-  install: CatalogInstall;
-}
-
-export interface ResolvedCatalogEntry {
-  result: CatalogSearchResult;
-  sourceAlias: string;
-  source: CatalogSource;
-}
-
-export interface CatalogProvider {
-  readonly id: string;
-  readonly kinds: readonly CatalogKind[];
-  search(query: string, limit?: number): Promise<CatalogSearchResult[]>;
-  resolve(result: CatalogSearchResult): Promise<ResolvedCatalogEntry>;
-}
+export type { GitHubSkillInstall } from './types/github-skill-install.ts';
+export type { WellKnownSkillInstall } from './types/well-known-skill-install.ts';
+export type { McpInstall } from './types/mcp-install.ts';
+export type { CatalogInstall } from './types/catalog-install.ts';
+export type { CatalogSearchResult } from './types/catalog-search-result.ts';
+export type { ResolvedCatalogEntry } from './types/resolved-catalog-entry.ts';
+export type { CatalogProvider } from './types/catalog-provider.ts';

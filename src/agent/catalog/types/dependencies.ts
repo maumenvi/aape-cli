@@ -1,21 +1,4 @@
-import type { MCPConfig } from '../../tools/types.ts';
-
-export interface CatalogDependencyBase {
-  version: string;
-  source: string;
-  path?: string;
-  enabled?: boolean;
-  capabilities?: string[];
-  constraints?: string[];
-  allowedLlms?: string[];
-}
-
-export interface SkillDependency extends CatalogDependencyBase {}
-
-export interface ToolDependency extends CatalogDependencyBase {
-  inputSchema?: Record<string, unknown>;
-}
-
-export interface McpDependency extends CatalogDependencyBase {
-  vscode: MCPConfig;
-}
+export type { CatalogDependencyBase } from './dependencies/catalog-dependency-base.ts';
+export type { SkillDependency } from './dependencies/skill-dependency.ts';
+export type { ToolDependency } from './dependencies/tool-dependency.ts';
+export type { McpDependency } from './dependencies/mcp-dependency.ts';

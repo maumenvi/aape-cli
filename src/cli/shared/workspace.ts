@@ -16,6 +16,7 @@ import type { LockPackage, SourceLock } from '../../agent/catalog/types/index.ts
 import type { AgentCatalogStore } from '../../agent/catalog/store.ts';
 import type { CatalogSource } from '../../agent/catalog/types/index.ts';
 import { ensureLockMcpEnvFileEntries } from '../install/mcp-credentials.ts';
+import { assertArtifactContentMatches } from '../../agent/catalog/lock/fingerprint-artifact.ts';
 import { fetchRemoteSkillMarkdown } from './remote-skill.ts';
 
 export { fetchRemoteSkillMarkdown } from './remote-skill.ts';
@@ -85,7 +86,9 @@ function writeMaterializedFile(
   targetPath: string,
   label: string,
   content: string,
+  expectedArtifactHash?: string,
 ): void {
+  assertArtifactContentMatches(label, content, expectedArtifactHash);
   assertNoSymlinkTraversal(workspaceRoot, targetPath, label);
   mkdirSync(path.dirname(targetPath), { recursive: true });
   assertNoSymlinkTraversal(workspaceRoot, targetPath, label);
@@ -132,39 +135,73 @@ export function resolveToolTargetPath(store: Pick<AgentCatalogStore, 'getPaths'>
   return path.resolve(resolveToolsDir(store), `${name}${extension}`);
 }
 
-export function materializeSkill(store: Pick<AgentCatalogStore, 'getPaths'>, name: string, targetRelativePath?: string): string {
+/** Materializes a bundled skill into the workspace `skills/` directory. */
+export function materializeSkill(
+  store: Pick<AgentCatalogStore, 'getPaths'>,
+  name: string,
+  targetRelativePath?: string,
+  expectedArtifactHash?: string,
+): string {
   const sourcePath = resolveRuntimeModulePath('skill', name);
   const workspaceRoot = resolveWorkspaceRoot(store);
   const targetPath = targetRelativePath
     ? assertMaterializedPath(workspaceRoot, targetRelativePath, 'skill target path', 'skills')
     : resolveSkillTargetPath(store, name, sourcePath);
-  writeMaterializedFile(workspaceRoot, targetPath, 'skill target path', readFileSync(sourcePath, 'utf8'));
+  writeMaterializedFile(
+    workspaceRoot,
+    targetPath,
+    `skill:${name}`,
+    readFileSync(sourcePath, 'utf8'),
+    expectedArtifactHash,
+  );
   return targetPath;
 }
 
-export function materializeSkillFromLock(store: Pick<AgentCatalogStore, 'getPaths'>, pkg: Pick<LockPackage, 'name' | 'path'>): string {
-  return materializeSkill(store, pkg.name, pkg.path);
+/** Materializes a locked skill, verifying its recorded artifact hash before writing. */
+export function materializeSkillFromLock(
+  store: Pick<AgentCatalogStore, 'getPaths'>,
+  pkg: Pick<LockPackage, 'name' | 'path' | 'artifactHash'>,
+): string {
+  return materializeSkill(store, pkg.name, pkg.path, pkg.artifactHash);
 }
 
-export function materializeTool(store: Pick<AgentCatalogStore, 'getPaths'>, name: string, targetRelativePath?: string): string {
+/** Materializes a bundled tool into the workspace `tools/` directory. */
+export function materializeTool(
+  store: Pick<AgentCatalogStore, 'getPaths'>,
+  name: string,
+  targetRelativePath?: string,
+  expectedArtifactHash?: string,
+): string {
   const sourcePath = resolveRuntimeModulePath('tool', name);
   const workspaceRoot = resolveWorkspaceRoot(store);
   const targetPath = targetRelativePath
     ? assertMaterializedPath(workspaceRoot, targetRelativePath, 'tool target path', 'tools')
     : resolveToolTargetPath(store, name, sourcePath);
-  writeMaterializedFile(workspaceRoot, targetPath, 'tool target path', readFileSync(sourcePath, 'utf8'));
+  writeMaterializedFile(
+    workspaceRoot,
+    targetPath,
+    `tool:${name}`,
+    readFileSync(sourcePath, 'utf8'),
+    expectedArtifactHash,
+  );
   return targetPath;
 }
 
-export function materializeToolFromLock(store: Pick<AgentCatalogStore, 'getPaths'>, pkg: Pick<LockPackage, 'name' | 'path'>): string {
-  return materializeTool(store, pkg.name, pkg.path);
+/** Materializes a locked tool, verifying its recorded artifact hash before writing. */
+export function materializeToolFromLock(
+  store: Pick<AgentCatalogStore, 'getPaths'>,
+  pkg: Pick<LockPackage, 'name' | 'path' | 'artifactHash'>,
+): string {
+  return materializeTool(store, pkg.name, pkg.path, pkg.artifactHash);
 }
 
+/** Fetches and materializes a remote skill markdown document into the workspace. */
 export async function materializeRemoteSkill(
   store: Pick<AgentCatalogStore, 'getPaths'>,
   name: string,
   source: CatalogSource,
   targetRelativePath = path.posix.join('skills', name, 'SKILL.md'),
+  expectedArtifactHash?: string,
 ): Promise<string> {
   const markdown = await fetchRemoteSkillMarkdown(source, name);
   if (markdown === null) {
@@ -173,7 +210,7 @@ export async function materializeRemoteSkill(
 
   const workspaceRoot = resolveWorkspaceRoot(store);
   const targetPath = assertMaterializedPath(workspaceRoot, targetRelativePath, 'skill target path', 'skills');
-  writeMaterializedFile(workspaceRoot, targetPath, 'skill target path', markdown);
+  writeMaterializedFile(workspaceRoot, targetPath, `skill:${name}`, markdown, expectedArtifactHash);
   return targetPath;
 }
 
@@ -208,6 +245,7 @@ export async function reinstallFromLock(store: Pick<AgentCatalogStore, 'getPaths
               ref: source.type === 'git' ? source.commit : (source.ref ?? source.commit),
             },
             pkg.path,
+            pkg.artifactHash,
           );
         }
         return materializeSkillFromLock(store, pkg);

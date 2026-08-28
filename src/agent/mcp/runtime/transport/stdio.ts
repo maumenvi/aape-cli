@@ -4,7 +4,8 @@ import type { MCPConfig, MCPStdioConfig } from '../../../tools/types.ts';
 import type { McpRequestOptions, McpTransport } from '../contracts/types.ts';
 import { McpJsonRpcError } from '../protocol/json-rpc.ts';
 import { encodeMcpMessage, McpMessageDecoder } from '../protocol/framing.ts';
-import type { JsonRpcFailure, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccess } from '../protocol/json-rpc.ts';
+import { isJsonRpcFailure, isJsonRpcResponse } from '../protocol/validation/index.ts';
+import type { JsonRpcNotification, JsonRpcRequest, JsonRpcSuccess } from '../protocol/json-rpc.ts';
 
 const SAFE_INHERITED_ENV_KEYS = [
   'PATH',
@@ -148,11 +149,10 @@ export class McpStdioTransport implements McpTransport {
   private onStdout(chunk: Buffer): void {
     const messages = this.decoder.push(chunk);
     for (const message of messages) {
-      const response = message as JsonRpcResponse;
-      if (typeof response !== 'object' || !response || typeof (response as { id?: unknown }).id !== 'number') {
+      if (!isJsonRpcResponse(message) || typeof message.id !== 'number') {
         continue;
       }
-      const responseId = response.id as number;
+      const responseId = message.id;
       const pending = this.pending.get(responseId);
       if (!pending) {
         continue;
@@ -162,11 +162,10 @@ export class McpStdioTransport implements McpTransport {
         clearTimeout(pending.timer);
       }
 
-      if ('error' in response) {
-        const error = response as JsonRpcFailure;
-        pending.reject(new McpJsonRpcError(error.error.code, error.error.message, error.error.data));
+      if (isJsonRpcFailure(message)) {
+        pending.reject(new McpJsonRpcError(message.error.code, message.error.message, message.error.data));
       } else {
-        pending.resolve((response as JsonRpcSuccess).result);
+        pending.resolve((message as JsonRpcSuccess).result);
       }
     }
   }

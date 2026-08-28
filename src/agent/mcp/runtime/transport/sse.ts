@@ -4,8 +4,10 @@ import {
   type JsonRpcFailure,
   type JsonRpcNotification,
   type JsonRpcRequest,
+  type JsonRpcResponse,
   type JsonRpcSuccess,
 } from '../protocol/json-rpc.ts';
+import { isJsonRpcFailure, parseJsonRpcResponse } from '../protocol/validation/index.ts';
 import { McpTransportError, type McpRequestOptions, type McpTransport } from '../contracts/types.ts';
 import { createMcpRequestHeaders } from './shared/create-mcp-request-headers.ts';
 
@@ -42,9 +44,8 @@ export class McpSseTransport implements McpTransport {
       ...(typeof params === 'undefined' ? {} : { params }),
     };
     const response = await this.send(payload, options.timeoutMs ?? this.defaultTimeoutMs, options);
-    if ('error' in response) {
-      const failure = response as JsonRpcFailure;
-      throw new McpJsonRpcError(failure.error.code, failure.error.message, failure.error.data);
+    if (isJsonRpcFailure(response)) {
+      throw new McpJsonRpcError(response.error.code, response.error.message, response.error.data);
     }
     return (response as JsonRpcSuccess<TResult>).result;
   }
@@ -94,7 +95,7 @@ export class McpSseTransport implements McpTransport {
         if (text.trim()) {
           try {
             const decoded = parseSseOrJson(text);
-            if (decoded.jsonrpc === '2.0' && 'error' in decoded) {
+            if (isJsonRpcFailure(decoded)) {
               return decoded;
             }
           } catch {
@@ -113,11 +114,7 @@ export class McpSseTransport implements McpTransport {
         }
         throw new Error('MCP SSE transport returned an empty response body.');
       }
-      const decoded = parseSseOrJson(text);
-      if (decoded.jsonrpc !== '2.0') {
-        throw new Error('MCP SSE transport returned invalid JSON-RPC payload.');
-      }
-      return decoded;
+      return parseSseOrJson(text);
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error(`MCP request timed out after ${timeoutMs}ms`);
@@ -129,10 +126,10 @@ export class McpSseTransport implements McpTransport {
   }
 }
 
-function parseSseOrJson(payload: string): JsonRpcSuccess | JsonRpcFailure {
+function parseSseOrJson(payload: string): JsonRpcResponse {
   const trimmed = payload.trim();
   if (trimmed.startsWith('{')) {
-    return JSON.parse(trimmed) as JsonRpcSuccess | JsonRpcFailure;
+    return parseJsonRpcResponse(trimmed, 'SSE');
   }
   const chunks = trimmed.split(/\n\n+/);
   for (const chunk of chunks) {
@@ -144,7 +141,7 @@ function parseSseOrJson(payload: string): JsonRpcSuccess | JsonRpcFailure {
     if (dataLines.length === 0) continue;
     const data = dataLines.join('\n');
     if (!data) continue;
-    return JSON.parse(data) as JsonRpcSuccess | JsonRpcFailure;
+    return parseJsonRpcResponse(data, 'SSE');
   }
   throw new Error('MCP SSE transport did not receive an SSE data payload.');
 }

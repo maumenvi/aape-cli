@@ -7,6 +7,7 @@ import {
   type JsonRpcRequest,
   type JsonRpcSuccess,
 } from '../protocol/json-rpc.ts';
+import { isJsonRpcFailure, parseJsonRpcResponse } from '../protocol/validation/index.ts';
 import { McpTransportError, type McpRequestOptions, type McpTransport } from '../contracts/types.ts';
 import { createMcpRequestHeaders } from './shared/create-mcp-request-headers.ts';
 
@@ -60,9 +61,8 @@ export class McpHttpTransport implements McpTransport {
       ...(typeof params === 'undefined' ? {} : { params }),
     };
     const response = await this.send(payload, options.timeoutMs ?? this.defaultTimeoutMs, options);
-    if ('error' in response) {
-      const failure = response as JsonRpcFailure;
-      throw new McpJsonRpcError(failure.error.code, failure.error.message, failure.error.data);
+    if (isJsonRpcFailure(response)) {
+      throw new McpJsonRpcError(response.error.code, response.error.message, response.error.data);
     }
     return (response as JsonRpcSuccess<TResult>).result;
   }
@@ -111,8 +111,8 @@ export class McpHttpTransport implements McpTransport {
       if (!response.ok) {
         if (text.trim()) {
           try {
-            const decoded = JSON.parse(text) as JsonRpcSuccess | JsonRpcFailure;
-            if (decoded.jsonrpc === '2.0' && 'error' in decoded) {
+            const decoded: unknown = JSON.parse(text);
+            if (isJsonRpcFailure(decoded)) {
               return decoded;
             }
           } catch {
@@ -131,11 +131,7 @@ export class McpHttpTransport implements McpTransport {
         }
         throw new Error('MCP HTTP transport returned an empty response body.');
       }
-      const decoded = JSON.parse(text) as JsonRpcSuccess | JsonRpcFailure;
-      if (decoded.jsonrpc !== '2.0') {
-        throw new Error('MCP HTTP transport returned invalid JSON-RPC payload.');
-      }
-      return decoded;
+      return parseJsonRpcResponse(text, 'HTTP');
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error(`MCP request timed out after ${timeoutMs}ms`);

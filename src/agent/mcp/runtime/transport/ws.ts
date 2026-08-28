@@ -1,7 +1,8 @@
 import type { MCPConfig, MCPWebSocketConfig } from '../../../tools/types.ts';
-import type { JsonRpcFailure, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccess } from '../protocol/json-rpc.ts';
+import type { JsonRpcNotification, JsonRpcRequest, JsonRpcSuccess } from '../protocol/json-rpc.ts';
 import type { McpRequestOptions, McpTransport } from '../contracts/types.ts';
 import { McpJsonRpcError } from '../protocol/json-rpc.ts';
+import { isJsonRpcFailure, isJsonRpcResponse } from '../protocol/validation/index.ts';
 
 interface PendingRequest {
   resolve(value: unknown): void;
@@ -110,21 +111,26 @@ export class McpWebSocketTransport implements McpTransport {
   private onMessage(event: unknown): void {
     const data = getEventData(event);
     if (!data) return;
-    const response = JSON.parse(data) as JsonRpcResponse;
-    if (typeof response !== 'object' || !response || typeof (response as { id?: unknown }).id !== 'number') {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(data);
+    } catch (err) {
+      console.error('Failed to parse MCP WebSocket message:', data, err);
       return;
     }
-    const responseId = response.id as number;
+    if (!isJsonRpcResponse(parsed) || typeof parsed.id !== 'number') {
+      return;
+    }
+    const responseId = parsed.id;
     const pending = this.pending.get(responseId);
     if (!pending) return;
     this.pending.delete(responseId);
     if (pending.timer) clearTimeout(pending.timer);
-    if ('error' in response) {
-      const error = response as JsonRpcFailure;
-      pending.reject(new McpJsonRpcError(error.error.code, error.error.message, error.error.data));
+    if (isJsonRpcFailure(parsed)) {
+      pending.reject(new McpJsonRpcError(parsed.error.code, parsed.error.message, parsed.error.data));
       return;
     }
-    pending.resolve((response as JsonRpcSuccess).result);
+    pending.resolve((parsed as JsonRpcSuccess).result);
   }
 
   private ensureOpen(): void {

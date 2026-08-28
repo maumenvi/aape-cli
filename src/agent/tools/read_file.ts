@@ -2,6 +2,7 @@ import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import type { Tool } from './types.ts';
 
+/** Resolves and validates a requested workspace file path. */
 function resolveTargetPath(input: unknown): string {
   const filePath = typeof input === 'string'
     ? input
@@ -29,6 +30,7 @@ function resolveTargetPath(input: unknown): string {
   return targetRealPath;
 }
 
+/** Normalizes read_file input before resolving the target path. */
 function resolveTargetPathFromInput(input: unknown): string {
   if (typeof input === 'string') {
     return resolveTargetPath(input);
@@ -47,6 +49,7 @@ export const tool: Tool = {
     required: ['path'],
     additionalProperties: false,
   },
+  /** Reads the requested workspace file as UTF-8 text. */
   async execute(input: unknown) {
     const targetPath = resolveTargetPathFromInput(input);
     if (!statSync(targetPath).isFile()) {

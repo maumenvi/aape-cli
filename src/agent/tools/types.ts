@@ -1,92 +1,12 @@
-export interface ToolConfig {
-  id?: string;
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
-  allowedLlms?: string[];
-}
-
-export interface Tool {
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
-  allowedLlms?: string[];
-  execute(input: unknown): Promise<unknown>;
-}
-
-export interface SkillConfig {
-  id?: string;
-  name?: string;
-  description: string;
-  uses?: string[];
-  handler?: string;
-  pipelineId?: string;
-  inputSchema?: Record<string, unknown>;
-  allowedLlms?: string[];
-}
-
-export interface Skill {
-  name: string;
-  description: string;
-  usesTools: string[];
-  allowedLlms?: string[];
-  execute(state: unknown, context: unknown): Promise<unknown>;
-}
-
-export interface ToolDescription {
-  config: {
-    tools: Array<{ name: string; description: string; inputSchema: Record<string, unknown>; allowedLlms: string[] }>;
-    skills: Array<{ name: string; description: string; usesTools: string[]; allowedLlms: string[] }>;
-    llmAccessDefault?: 'allow' | 'deny';
-  };
-  tools: Array<{ type: 'function'; function: { name: string; description: string; parameters: Record<string, unknown> } }>;
-  skills: Array<{ type: 'function'; function: { name: string; description: string; parameters: Record<string, unknown> } }>;
-  metaTools: Array<{ type: 'function'; function: { name: string; description: string; parameters: Record<string, unknown> } }>;
-}
-
-export interface Repository {
-  type: 'git' | 'custom';
-  name?: string;
-  url?: string;
-  baseUrl?: string;
-  ref?: string;
-  trusted?: boolean;
-  org?: string;
-  repo?: string;
-  default?: boolean;
-}
-
-export interface MCPStdioConfig {
-  transport?: 'stdio';
-  command: string;
-  args?: string[];
-  env?: Record<string, string>;
-}
-
-export interface MCPHttpConfig {
-  transport: 'http';
-  url: string;
-  headers?: Record<string, string>;
-}
-
-export interface MCPSseConfig {
-  transport: 'sse';
-  url: string;
-  headers?: Record<string, string>;
-}
-
-export interface MCPWebSocketConfig {
-  transport: 'ws';
-  url: string;
-  headers?: Record<string, string>;
-}
-
-export interface MCPNpxConfig {
-  transport: 'npx';
-  package: string;
-  args?: string[];
-  env?: Record<string, string>;
-  npxArgs?: string[];
-}
-
-export type MCPConfig = MCPStdioConfig | MCPHttpConfig | MCPSseConfig | MCPWebSocketConfig | MCPNpxConfig;
+export type { ToolConfig } from './types/tool-config.ts';
+export type { Tool } from './types/tool.ts';
+export type { SkillConfig } from './types/skill-config.ts';
+export type { Skill } from './types/skill.ts';
+export type { ToolDescription } from './types/tool-description.ts';
+export type { Repository } from './types/repository.ts';
+export type { MCPStdioConfig } from './types/mcp-stdio-config.ts';
+export type { MCPHttpConfig } from './types/mcp-http-config.ts';
+export type { MCPSseConfig } from './types/mcp-sse-config.ts';
+export type { MCPWebSocketConfig } from './types/mcp-web-socket-config.ts';
+export type { MCPNpxConfig } from './types/mcp-npx-config.ts';
+export type { MCPConfig } from './types/mcp-config.ts';

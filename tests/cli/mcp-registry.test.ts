@@ -103,7 +103,7 @@ describe('MCP Registry provider', () => {
     }
   });
 
-  it('creates a blank .env.maia template when the project env file is missing', () => {
+  it('does not create .env.maia while loading project env (e.g. MCP connect)', () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-dotenv-bootstrap-'));
     const originalCwd = process.cwd();
 
@@ -115,11 +115,25 @@ describe('MCP Registry provider', () => {
 
       loadDotEnvFromCurrentProject();
 
-      assert.ok(existsSync(envFile));
-      const content = readFileSync(envFile, 'utf8');
-      assert.equal(content, '\n');
+      assert.ok(!existsSync(envFile), '.env.maia must not be auto-created on load');
     } finally {
       process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('creates a blank .env.maia template only via ensureProjectDotEnv', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-dotenv-ensure-'));
+
+    try {
+      const envFile = path.resolve(tempDir, '.env.maia');
+      assert.ok(!existsSync(envFile));
+
+      ensureProjectDotEnv(envFile);
+
+      assert.ok(existsSync(envFile));
+      assert.equal(readFileSync(envFile, 'utf8'), '\n');
+    } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });

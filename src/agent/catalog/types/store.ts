@@ -1,14 +1,2 @@
-export interface CatalogStoreOptions {
-  cwd?: string;
-  manifestFile?: string;
-  lockFile?: string;
-}
-
-export interface CatalogStorePaths {
-  manifest: string;
-  lock: string;
-  contextDir: string;
-  contextDev: string;
-  contextLlm: string;
-  vscodeMcp: string;
-}
+export type { CatalogStoreOptions } from './store/catalog-store-options.ts';
+export type { CatalogStorePaths } from './store/catalog-store-paths.ts';
