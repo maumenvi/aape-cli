@@ -8,8 +8,12 @@ export const cursor: AgentTarget = {
   id: 'cursor',
   aliases: ['cursor-ide'],
   name: 'Cursor',
+  configFormat: 'servers',
   configPaths(cwd) {
     return [join(cwd, '.cursor', 'mcp.json')];
   },
   buildEntry: mcpEntry,
+  instructionsFile(cwd) {
+    return join(cwd, '.cursor', 'rules', 'maia.mdc');
+  },
 };

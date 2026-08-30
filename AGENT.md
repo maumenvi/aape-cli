@@ -83,7 +83,7 @@ tests/
 ## Notes for future changes
 
 - If a new module does not support the CLI directly, it probably should not live in this repository.
-- When adding agent compatibility, wire it through the existing agent registry and config injection flow.
+- When adding agent compatibility, wire it through the existing agent registry and config injection flow. Set `configFormat` and, where the agent supports them, `skillsDir` / `instructionsFile` on the `AgentTarget` so `configureAgents` can register MCPs and skills in that agent's standard locations.
 - When adding runtime features, keep them compatible with the built-in MCP server and local catalog layout.
 
 

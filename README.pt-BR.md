@@ -151,6 +151,7 @@ Resultado típico:
 
 - o projeto recebe as pastas de capacidades do Maia;
 - cada agente selecionado recebe um endpoint MCP identificado e um perfil de autorização em `.maia/agents/<id>/`;
+- cada agente selecionado também é integrado nativamente: os MCPs instalados são registrados individualmente no config MCP do próprio agente, ao lado do proxy `maia`; as skills autorizadas são copiadas para a pasta de skills nativa do agente (ex.: `.claude/skills/`); e um bloco gerenciado `maia:capabilities` é inserido/atualizado no arquivo de instruções do agente (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
 - skills, MCPs e tools instalados ficam mais fáceis de versionar, compartilhar e reproduzir.
 
 Atualizar o CLI local neste repositório:
@@ -202,6 +203,20 @@ Em `maia mcp add` (ou instalação por seleção no `find`):
 Abrir um transporte MCP lê somente `.maia/mcp.env`; o `.env` do projeto não é carregado nem modificado. O Maia mantém o manifesto em `.maia/maia.json`, o lock em `.maia/maia.lock.json`, as capacidades materializadas em `.maia/skills` e `.maia/tools` e os perfis de autorização em `.maia/agents`.
 
 Cada bootstrap nativo executa `maia mcp-server --agent <id>`. Essa identidade permite que o MCP agregado exponha somente skills, tools e MCPs autorizados para o agente selecionado. Arquivos nativos obrigatórios, como `.vscode/mcp.json` ou `.codex/config.toml`, permanecem nos caminhos exigidos pelos clientes; todo o estado pertencente ao Maia fica em `.maia/`.
+
+Além do proxy `maia`, o `configureAgents` grava as capacidades autorizadas diretamente nos locais canônicos de cada agente, para que o agente as reconheça sem precisar ser lembrado:
+
+| Agente | Config MCP | Skills | Instruções |
+| --- | --- | --- | --- |
+| Claude | `.mcp.json` (fallback `.claude/claude_desktop_config.json`) | `.claude/skills/<nome>/SKILL.md` | `CLAUDE.md` |
+| VS Code Copilot | `.vscode/mcp.json` | — | `.github/copilot-instructions.md` |
+| Cursor | `.cursor/mcp.json` | — | `.cursor/rules/maia.mdc` |
+| Zed | `.zed/settings.json` | — | `AGENTS.md` |
+| Cline | `.cline/mcp.json` | — | `.clinerules/maia.md` |
+| Continue | `.continue/config.json` | — | `AGENTS.md` |
+| OpenAI Codex | `.codex/config.toml` | — | `AGENTS.md` |
+
+Somente as capacidades autorizadas para o agente (via `allowedLlms` / `llmAccessDefault`) são entregues, e o bloco de instruções fica entre os marcadores `<!-- maia:capabilities:start -->` / `<!-- maia:capabilities:end -->`, de modo que reexecuções nunca duplicam nem sobrescrevem o seu conteúdo.
 
 ## Segurança e confiança das fontes
 

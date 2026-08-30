@@ -8,15 +8,25 @@ import { escapeTomlString } from './escape-toml-string.ts';
 export function injectTomlMcpServers(filePath: string, key: string, serverConfig: AgentMcpServerConfig): void {
   mkdirSync(dirname(filePath), { recursive: true });
   const existing = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
-  const entry = [
-    `${key} = {`,
-    `  command = ${escapeTomlString(serverConfig.command)},`,
-    `  args = ${JSON.stringify(serverConfig.args)},`,
-  ];
+  const entry = [`${key} = {`];
 
+  if (serverConfig.url) {
+    entry.push(`  url = ${escapeTomlString(serverConfig.url)},`);
+  }
+  if (serverConfig.command) {
+    entry.push(`  command = ${escapeTomlString(serverConfig.command)},`);
+  }
+  if (serverConfig.args) {
+    entry.push(`  args = ${JSON.stringify(serverConfig.args)},`);
+  }
+  if (serverConfig.env && Object.keys(serverConfig.env).length > 0) {
+    entry.push(`  env = ${JSON.stringify(serverConfig.env)},`);
+  }
   if (serverConfig.cwd) {
     entry.push(`  cwd = ${escapeTomlString(serverConfig.cwd)},`);
   }
+  const lastFieldIndex = entry.length - 1;
+  entry[lastFieldIndex] = entry[lastFieldIndex].replace(/,$/, '');
   entry.push('}');
 
   const section = '[mcp_servers]';

@@ -8,8 +8,12 @@ export const copilot: AgentTarget = {
   id: 'copilot',
   aliases: ['vscode', 'code'],
   name: 'VS Code Copilot',
+  configFormat: 'servers',
   configPaths(cwd) {
     return [join(cwd, '.vscode', 'mcp.json')];
   },
   buildEntry: mcpEntry,
+  instructionsFile(cwd) {
+    return join(cwd, '.github', 'copilot-instructions.md');
+  },
 };

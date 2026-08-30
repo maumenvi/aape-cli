@@ -7,9 +7,15 @@ export function injectZedSettings(
   serverConfig: AgentMcpServerConfig,
 ): Record<string, unknown> {
   const existing = (data['context_servers'] ?? {}) as Record<string, unknown>;
-  const entry = {
-    command: { path: serverConfig.command, args: serverConfig.args },
-  };
+  const entry = serverConfig.url
+    ? { url: serverConfig.url, ...(serverConfig.headers ? { headers: serverConfig.headers } : {}) }
+    : {
+        command: {
+          path: serverConfig.command,
+          args: serverConfig.args ?? [],
+          ...(serverConfig.env ? { env: serverConfig.env } : {}),
+        },
+      };
   return {
     ...data,
     context_servers: {

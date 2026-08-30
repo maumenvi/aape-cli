@@ -8,8 +8,12 @@ export const codex: AgentTarget = {
   id: 'codex',
   aliases: ['openai-codex', 'gpt-codex'],
   name: 'OpenAI Codex',
+  configFormat: 'toml-mcp-servers',
   configPaths(cwd) {
     return [join(cwd, '.codex', 'config.toml')];
   },
   buildEntry: mcpEntry,
+  instructionsFile(cwd) {
+    return join(cwd, 'AGENTS.md');
+  },
 };

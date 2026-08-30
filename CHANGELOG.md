@@ -5,6 +5,25 @@ All notable changes to the Maia CLI are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Agent configuration now registers every installed skill and MCP server **natively** in each
+  configured agent, not only the aggregating `maia` proxy:
+  - installed MCP servers are injected individually into the agent's native MCP config
+    (`.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`, `.codex/config.toml`, …) next to `maia`;
+  - authorized skills are copied into the agent's native skills directory (`.claude/skills/<name>/SKILL.md`);
+  - an idempotent `maia:capabilities` block is upserted into the agent's instruction file
+    (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, `.cursor/rules/maia.mdc`, `.clinerules/maia.md`).
+- `AgentTarget` gained `configFormat`, `skillsDir`, and `instructionsFile` descriptors so agent
+  wiring is data-driven instead of branching on the agent id.
+
+### Changed
+- The `claude` target now prefers `.mcp.json` (Claude Code project scope), falling back to the
+  legacy `.claude/claude_desktop_config.json`, and is labelled `Claude`.
+- Per-agent registration respects the existing `allowedLlms` / `llmAccessDefault` policy — only
+  capabilities authorized for that agent are delivered.
+
 ## [1.5.3]
 
 ### Added

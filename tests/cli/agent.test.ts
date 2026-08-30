@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
+import { mcpConfigToServerEntry } from '../../src/agent/agents/inject/mcp-config-to-server-entry.ts';
 import { agentRegistry } from '../../src/agent/agents/registry/agent-registry.ts';
 import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
 import { agentCommand } from '../../src/cli/commands/agent/agent-command.ts';
@@ -109,7 +110,7 @@ describe('CLI agent/init', () => {
       assert.ok(manifest.agents.codex);
       assert.equal(manifest.agents.codex.name, 'OpenAI Codex');
       assert.ok(manifest.agents.claude);
-      assert.equal(manifest.agents.claude.name, 'Claude Desktop');
+      assert.equal(manifest.agents.claude.name, 'Claude');
       assert.equal(existsSync(path.resolve(tempDir, '.maia', 'maia.json')), true);
       assert.match(readFileSync(path.resolve(tempDir, '.codex', 'config.toml'), 'utf8'), /"--agent","codex"/);
     } finally {
@@ -174,6 +175,72 @@ describe('CLI agent/init', () => {
       assert.deepEqual(claude.tools.map((entry: { name: string }) => entry.name), ['claude-only']);
       assert.equal(codex.mcps[0]?.name, 'shared-mcp');
       assert.equal(claude.mcps[0]?.name, 'shared-mcp');
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('converts every MCP transport into a native server entry', () => {
+    assert.deepEqual(
+      mcpConfigToServerEntry('a', { command: 'srv', args: ['--x'], env: { K: 'v' } }),
+      { command: 'srv', args: ['--x'], env: { K: 'v' } },
+    );
+    assert.deepEqual(
+      mcpConfigToServerEntry('b', { transport: 'npx', package: 'pkg', args: ['--y'] }),
+      { command: 'npx', args: ['-y', 'pkg', '--y'] },
+    );
+    assert.deepEqual(
+      mcpConfigToServerEntry('c', { transport: 'http', url: 'https://x', headers: { A: '1' } }),
+      { type: 'http', url: 'https://x', headers: { A: '1' } },
+    );
+    assert.throws(() => mcpConfigToServerEntry('d', { transport: 'http', url: '' }), /missing a URL/);
+  });
+
+  it('registers MCPs and skills natively in each agent config', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-agent-native-'));
+    const originalCwd = process.cwd();
+    const store = new AgentCatalogStore({ cwd: tempDir });
+
+    try {
+      process.chdir(tempDir);
+      await initCommand(['claude'], { store });
+
+      mkdirSync(path.resolve(tempDir, '.maia', 'skills', 'demo'), { recursive: true });
+      writeFileSync(path.resolve(tempDir, '.maia', 'skills', 'demo', 'SKILL.md'), '# Demo skill\n', 'utf8');
+      store.addDependency('skill', 'demo', {
+        version: '*', source: 'local', enabled: true, capabilities: [], constraints: [],
+        allowedLlms: ['*'], path: 'skills/demo/SKILL.md',
+      });
+      store.addDependency('skill', 'codex-secret', {
+        version: '*', source: 'local', enabled: true, capabilities: [], constraints: [],
+        allowedLlms: ['codex'], path: 'skills/codex-secret/SKILL.md',
+      });
+      store.addDependency('mcp', 'filesystem', {
+        version: '*', source: 'local', enabled: true, capabilities: [], constraints: [],
+        allowedLlms: ['*'], vscode: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-filesystem'] },
+      });
+      store.buildLock();
+
+      await agentCommand(['claude'], { store });
+
+      const mcpConfig = JSON.parse(readFileSync(path.resolve(tempDir, '.mcp.json'), 'utf8'));
+      assert.ok(mcpConfig.mcpServers.filesystem, 'individual MCP is registered natively');
+      assert.ok(mcpConfig.mcpServers.maia, 'maia proxy stays registered');
+
+      assert.ok(existsSync(path.resolve(tempDir, '.claude', 'skills', 'demo', 'SKILL.md')));
+      assert.equal(existsSync(path.resolve(tempDir, '.claude', 'skills', 'codex-secret', 'SKILL.md')), false);
+
+      const claudeMd = readFileSync(path.resolve(tempDir, 'CLAUDE.md'), 'utf8');
+      assert.match(claudeMd, /maia:capabilities:start/);
+      assert.match(claudeMd, /`demo`/);
+      assert.match(claudeMd, /`filesystem`/);
+
+      await agentCommand(['claude'], { store });
+      const claudeMdAgain = readFileSync(path.resolve(tempDir, 'CLAUDE.md'), 'utf8');
+      assert.equal((claudeMdAgain.match(/maia:capabilities:start/g) ?? []).length, 1);
+      const mcpConfigAgain = JSON.parse(readFileSync(path.resolve(tempDir, '.mcp.json'), 'utf8'));
+      assert.equal(Object.keys(mcpConfigAgain.mcpServers).length, 2);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });

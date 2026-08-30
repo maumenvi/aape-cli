@@ -18,4 +18,6 @@ Before assuming a capability exists, query it with:
 The project may register capabilities in the manifest while the active agent runtime only exposes a subset. Always prefer the CLI inventory for discovery.
 
 The built-in MCP server should also expose these discovery tools with clear descriptions so downstream agents can call them automatically without repeated prompting.
+
+When agents are configured, Maia also registers each installed skill and MCP server natively in that agent's standard locations (for example \`.claude/skills/\`, \`.mcp.json\`, \`.github/copilot-instructions.md\`) alongside the aggregating \`maia\` proxy, so capabilities are picked up without extra prompting.
 `;

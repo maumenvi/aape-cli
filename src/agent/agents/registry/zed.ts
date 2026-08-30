@@ -7,8 +7,12 @@ import { mcpEntry } from './mcp-entry.ts';
 export const zed: AgentTarget = {
   id: 'zed',
   name: 'Zed',
+  configFormat: 'zed-settings',
   configPaths(cwd) {
     return [join(cwd, '.zed', 'settings.json')];
   },
   buildEntry: mcpEntry,
+  instructionsFile(cwd) {
+    return join(cwd, 'AGENTS.md');
+  },
 };

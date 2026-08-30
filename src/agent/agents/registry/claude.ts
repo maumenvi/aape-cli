@@ -6,9 +6,16 @@ import { mcpEntry } from './mcp-entry.ts';
 /** Defines the claude value. */
 export const claude: AgentTarget = {
   id: 'claude',
-  name: 'Claude Desktop',
+  name: 'Claude',
+  configFormat: 'mcp-servers',
   configPaths(cwd) {
-    return [join(cwd, '.claude', 'claude_desktop_config.json')];
+    return [join(cwd, '.mcp.json'), join(cwd, '.claude', 'claude_desktop_config.json')];
   },
   buildEntry: mcpEntry,
+  skillsDir(cwd) {
+    return join(cwd, '.claude', 'skills');
+  },
+  instructionsFile(cwd) {
+    return join(cwd, 'CLAUDE.md');
+  },
 };

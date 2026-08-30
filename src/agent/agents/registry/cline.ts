@@ -7,8 +7,12 @@ import { mcpEntry } from './mcp-entry.ts';
 export const cline: AgentTarget = {
   id: 'cline',
   name: 'Cline',
+  configFormat: 'servers',
   configPaths(cwd) {
     return [join(cwd, '.cline', 'mcp.json')];
   },
   buildEntry: mcpEntry,
+  instructionsFile(cwd) {
+    return join(cwd, '.clinerules', 'maia.md');
+  },
 };

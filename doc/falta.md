@@ -12,6 +12,14 @@
 - Cobertura e verificação arquitetural integradas aos scripts e ao CI.
 - Política explícita de confiança publicada em `SECURITY.md`.
 
+## Registro nativo por agente (follow-ups)
+- `maia rm <kind> <name>` e `maia mcp sync` chamam `store.syncVsCodeMcp()`, que reescreve
+  `.vscode/mcp.json` apenas com os MCPs do lock e remove a entrada proxy `maia`. Deveriam chamar
+  `restoreConfiguredAgents(store)` depois, como fazem `install` e `ci`.
+- Confirmar o formato de config MCP real do Cursor e do Cline (`mcpServers` vs `servers`). Hoje
+  ambos usam `configFormat: 'servers'`, herdado do comportamento anterior.
+- Skills multi-arquivo: a cópia nativa (e a materialização em `.maia`) só copia o `SKILL.md`.
+
 ## Segurança e hardening
 - Remover ou ocultar a entrada visível de credenciais em fluxos de
   onboarding/instalação de MCPs.

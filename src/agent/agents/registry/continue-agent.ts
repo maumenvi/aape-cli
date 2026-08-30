@@ -8,8 +8,12 @@ export const continueAgent: AgentTarget = {
   id: 'continue',
   aliases: ['continue-dev'],
   name: 'Continue',
+  configFormat: 'mcp-servers',
   configPaths(cwd) {
     return [join(cwd, '.continue', 'config.json')];
   },
   buildEntry: mcpEntry,
+  instructionsFile(cwd) {
+    return join(cwd, 'AGENTS.md');
+  },
 };
