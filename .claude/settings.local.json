@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(echo \"cov exit=$?\")",
+      "Bash(echo \"coverage exit=$?\")",
+      "Bash(node /home/marco/Documentos/projetos/maia/maia-cli/src/cli/index.ts i mcp filesystem --transport npx --package @modelcontextprotocol/server-filesystem)",
+      "Bash(node /home/marco/Documentos/projetos/maia/maia-cli/src/cli/index.ts list-skills)",
+      "Bash(node src/cli/index.ts help)"
+    ]
+  }
+}
