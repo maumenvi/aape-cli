@@ -67,6 +67,7 @@ export class AgentCatalogStore {
 
   /** Performs the save manifest operation. */
   saveManifest(manifest: SourcesManifest): void {
+    mkdirSync(this.paths.stateDir, { recursive: true });
     mkdirSync(path.dirname(this.paths.manifest), { recursive: true });
     writeFileSync(this.paths.manifest, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   }
@@ -139,7 +140,7 @@ export class AgentCatalogStore {
 
   /** Performs the build lock operation. */
   buildLock(): SourceLock {
-    const lock = buildLockFromManifest(this.loadManifest(), path.dirname(this.paths.manifest));
+    const lock = buildLockFromManifest(this.loadManifest(), this.paths.stateDir);
     this.saveLock(lock);
     return lock;
   }
@@ -152,7 +153,7 @@ export class AgentCatalogStore {
     if (!lock) {
       throw new Error('maia.lock.json not found. Run "maia lock" first.');
     }
-    return verifySourceLock(lock, path.dirname(this.paths.manifest), options);
+    return verifySourceLock(lock, this.paths.stateDir, options);
   }
 
   /** Performs the verify lock metadata operation. */
@@ -180,7 +181,7 @@ export class AgentCatalogStore {
     if (match?.path) {
       const candidate = match.path.startsWith('/')
         ? match.path
-        : path.resolve(path.dirname(this.paths.manifest), match.path);
+        : path.resolve(this.paths.stateDir, match.path);
       if (existsSync(candidate)) {
         if (candidate.endsWith('.md')) {
           const markdown = readFileSync(candidate, 'utf8');

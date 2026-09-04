@@ -19,6 +19,14 @@ export function renderAgentCapabilityBlock(store: AgentCatalogStore, target: Age
   const nativeSkillsDir = target.skillsDir
     ? path.relative(projectRoot, target.skillsDir(projectRoot))
     : null;
+  const skillLines = skills.length > 0
+    ? skills.map((pkg) => {
+      const location = nativeSkillsDir
+        ? ` — \`${nativeSkillsDir}/${pkg.name}/SKILL.md\``
+        : ' — available through the Maia MCP server';
+      return `- \`${pkg.name}\`${location}`;
+    })
+    : ['- _none authorized_'];
 
   const lines = [
     CAPABILITY_BLOCK_START,
@@ -26,13 +34,13 @@ export function renderAgentCapabilityBlock(store: AgentCatalogStore, target: Age
     '',
     '## Maia capabilities',
     '',
-    'The skills, MCP servers, and tools below are registered natively for this agent by Maia.',
+    target.skillsDir
+      ? 'The skills, MCP servers, and tools below are registered natively for this agent by Maia.'
+      : 'The MCP servers below are registered natively for this agent by Maia. Skills and tools are available through the Maia MCP server.',
     'Treat `maia list-capabilities --json` as the authoritative inventory.',
     '',
     '### Skills',
-    ...(skills.length > 0
-      ? skills.map((pkg) => `- \`${pkg.name}\`${nativeSkillsDir ? ` — \`${nativeSkillsDir}/${pkg.name}/SKILL.md\`` : ''}`)
-      : ['- _none authorized_']),
+    ...skillLines,
     '',
     '### MCP servers',
     '- `maia` — aggregating proxy exposing every capability below',

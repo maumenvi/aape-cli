@@ -9,4 +9,4 @@ npm install
 npm run build:publish
 npm install -g --force .
 
-aape version
+maia version

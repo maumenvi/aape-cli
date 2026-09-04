@@ -51,7 +51,7 @@ describe('CLI list-tools', () => {
 
       await listToolsCommand([], { store });
 
-      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')), false);
+      assert.equal(existsSync(path.resolve(tempDir, 'maia.lock.json')), false);
       assert.equal(existsSync(path.resolve(tempDir, '.maia', 'mcp.env')), false);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });

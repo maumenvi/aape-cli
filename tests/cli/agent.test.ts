@@ -68,13 +68,12 @@ describe('CLI agent/init', () => {
 
       await initCommand(['claude,copilot', 'zed'], { store: new AgentCatalogStore({ cwd: tempDir }) });
 
-      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')));
-      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'maia.json')));
+      assert.ok(existsSync(path.resolve(tempDir, 'maia.lock.json')));
+      assert.ok(existsSync(path.resolve(tempDir, 'maia.json')));
       assert.equal(existsSync(path.resolve(tempDir, 'sources')), false);
       assert.equal(existsSync(path.resolve(tempDir, 'source.lock')), false);
       assert.equal(existsSync(path.resolve(tempDir, '.env.maia')), false);
-      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'AGENTS.md')));
-      assert.match(readFileSync(path.resolve(tempDir, '.maia', 'AGENTS.md'), 'utf8'), /list-capabilities --json/);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'AGENTS.md')), false);
 
       const claudeConfig = path.resolve(tempHome, '.config', 'claude', 'claude_desktop_config.json');
       const copilotConfig = path.resolve(tempHome, '.config', 'Code', 'User', 'mcp.json');
@@ -83,10 +82,9 @@ describe('CLI agent/init', () => {
       assert.ok(!existsSync(claudeConfig));
       assert.ok(!existsSync(copilotConfig));
       assert.ok(!existsSync(zedConfig));
-      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'AGENTS.md')));
-      assert.ok(!existsSync(path.resolve(tempDir, '.maia', 'skills')));
-      assert.ok(!existsSync(path.resolve(tempDir, 'mcps')));
-      assert.ok(!existsSync(path.resolve(tempDir, '.maia', 'tools')));
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'mcp')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'skills')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'tools')), false);
     } finally {
       process.chdir(originalCwd);
       process.env.HOME = originalHome;
@@ -111,7 +109,7 @@ describe('CLI agent/init', () => {
       assert.equal(manifest.agents.codex.name, 'OpenAI Codex');
       assert.ok(manifest.agents.claude);
       assert.equal(manifest.agents.claude.name, 'Claude');
-      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'maia.json')), true);
+      assert.equal(existsSync(path.resolve(tempDir, 'maia.json')), true);
       assert.match(readFileSync(path.resolve(tempDir, '.codex', 'config.toml'), 'utf8'), /"--agent","codex"/);
     } finally {
       process.chdir(originalCwd);
@@ -135,8 +133,8 @@ describe('CLI agent/init', () => {
 
       assert.equal(existsSync(path.resolve(tempDir, 'sources')), false);
       assert.equal(existsSync(path.resolve(tempDir, 'source.lock')), false);
-      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'maia.json')), true);
-      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')), true);
+      assert.equal(existsSync(path.resolve(tempDir, 'maia.json')), true);
+      assert.equal(existsSync(path.resolve(tempDir, 'maia.lock.json')), true);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });

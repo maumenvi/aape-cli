@@ -12,6 +12,7 @@ export function migrateLegacyCatalogFiles(paths: CatalogStorePaths): void {
     [path.resolve(paths.stateDir, 'source.lock'), paths.lock],
     [path.resolve(paths.stateDir, 'maia'), paths.manifest],
     [path.resolve(paths.stateDir, 'maia.lock'), paths.lock],
+    [path.resolve(paths.stateDir, 'maia.lock.json'), paths.lock],
   ];
 
   mkdirSync(paths.stateDir, { recursive: true });

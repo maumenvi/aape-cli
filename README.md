@@ -153,7 +153,7 @@ Typical result:
 
 - your project gets the Maia capability folders;
 - each selected agent receives an identified MCP entrypoint and an authorization profile under `.maia/agents/<id>/`;
-- each selected agent is also wired natively: installed MCP servers are registered individually in the agent's own MCP config next to the `maia` proxy, authorized skills are copied into the agent's native skills directory (e.g. `.claude/skills/`), and a managed `maia:capabilities` block is upserted into the agent's instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
+- each selected agent is also wired natively: installed MCP servers are registered individually in the agent's own MCP config next to the `maia` proxy, authorized skills are copied into the agent's native skills directory when supported (for example `.claude/skills/`), and otherwise remain available through the Maia MCP server; a managed `maia:capabilities` block is upserted into the agent's instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
 - installed skills, MCPs, and tools become easier to version, share, and reproduce.
 
 Update the local CLI in this repository:
@@ -202,7 +202,7 @@ In `maia mcp add` (or installation through selection in `find`):
 - preserves custom entries and removes obsolete auto-generated defaults from older templates;
 - rebuilds those MCP variables during `maia install` and `maia ci` from `maia.lock.json`, without overwriting the real project `.env`.
 
-Opening an MCP transport reads only `.maia/mcp.env`; it does not load or modify the project's `.env`. Maia stores its manifest in `.maia/maia.json`, its lock in `.maia/maia.lock.json`, materialized capabilities under `.maia/skills` and `.maia/tools`, and per-agent authorization profiles under `.maia/agents`.
+Opening an MCP transport reads only `.maia/mcp.env`; it does not load or modify the project's `.env`. Maia stores its manifest and lock in `maia.json` and `maia.lock.json`, and fallback capabilities under `.maia/mcp`, `.maia/skills`, and `.maia/tools`, with per-agent authorization profiles under `.maia/agents`.
 
 Each native agent bootstrap runs `maia mcp-server --agent <id>`. This identity lets the aggregate MCP expose only the skills, tools, and proxied MCPs authorized for that selected agent. Native bootstrap files such as `.vscode/mcp.json` or `.codex/config.toml` remain in the client-required locations; all Maia-owned state stays under `.maia/`.
 
@@ -259,7 +259,7 @@ maia add claude copilot
 maia add agent claude cursor zed
 ```
 
-Selected agents are always persisted in `.maia/maia.json`; no additional save flag is required. Install and CI flows regenerate each saved agent profile and native MCP bootstrap.
+Selected agents are always persisted in `maia.json`; no additional save flag is required. Install and CI flows regenerate each saved agent profile and native MCP bootstrap. When no agent is selected, Maia keeps fallback capabilities under `.maia`.
 
 ### Skills
 

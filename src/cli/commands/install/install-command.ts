@@ -74,7 +74,7 @@ export const installCommand: CommandHandler = async (args, { store }) => {
       capabilities: registryEntry.capabilities ?? [],
       constraints: [],
       allowedLlms,
-      path: path.relative(path.dirname(store.getPaths().manifest), targetPath).replaceAll('\\', '/'),
+      path: path.relative(store.getPaths().stateDir, targetPath).replaceAll('\\', '/'),
       inputSchema: registryEntry.inputSchema,
     });
     store.buildLock();

@@ -17,7 +17,6 @@ export function materializeAgentSkills(store: AgentCatalogStore, target: AgentTa
   }
 
   const projectRoot = store.getPaths().projectRoot;
-  const manifestDir = path.dirname(store.getPaths().manifest);
   const skillsDir = target.skillsDir(projectRoot);
   const written: string[] = [];
 
@@ -25,7 +24,7 @@ export function materializeAgentSkills(store: AgentCatalogStore, target: AgentTa
     if (pkg.type !== 'skill' || !pkg.path) {
       continue;
     }
-    const sourcePath = path.isAbsolute(pkg.path) ? pkg.path : path.resolve(manifestDir, pkg.path);
+    const sourcePath = path.isAbsolute(pkg.path) ? pkg.path : path.resolve(store.getPaths().stateDir, pkg.path);
     if (!existsSync(sourcePath)) {
       continue;
     }

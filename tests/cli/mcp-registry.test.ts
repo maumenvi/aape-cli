@@ -95,6 +95,25 @@ describe('MCP Registry provider', () => {
     }
   });
 
+  it('keeps searching when the registry response takes longer than the short network delay', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-registry-slow-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 8_100));
+        return registryResponse();
+      };
+
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      const results = await discoverMcpsFromStore(store, 'filesystem');
+      assert.equal(results.length, 1);
+      assert.equal(results[0]?.name, 'io.github.example/filesystem');
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('does not create mcp.env while loading project configuration', () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-dotenv-bootstrap-'));
     const originalCwd = process.cwd();

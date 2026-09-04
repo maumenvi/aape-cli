@@ -1,7 +1,10 @@
+import path from 'node:path';
+
 import type { CommandHandler } from '../../contracts/command-handler.ts';
 import { configureAgents } from '../agent/configure-agents.ts';
 import { resolveTargets } from '../agent/resolve-targets.ts';
 import { ensureInitialized } from './ensure-initialized.ts';
+import { ensureAgentGuidanceFile } from './ensure-agent-guidance-file.ts';
 import { normalizeAgentIds } from './normalize-agent-ids.ts';
 import { promptForAgentIds } from './prompt-for-agent-ids.ts';
 import { restoreConfiguredAgents } from './restore-configured-agents.ts';
@@ -15,7 +18,12 @@ export const initCommand: CommandHandler = async (args, { store }) => {
 
   if (agentIds.length === 0) {
     store.saveSelectedAgents([]);
-    console.log('Initialized maia manifest, lockfile, and agent guidance files');
+    const paths = store.getPaths();
+    if (Object.keys(store.loadManifest().agents).length === 0) {
+      ensureAgentGuidanceFile(path.resolve(paths.stateDir, 'AGENT.md'));
+      ensureAgentGuidanceFile(path.resolve(paths.stateDir, 'AGENTS.md'));
+    }
+    console.log('Initialized maia manifest, lockfile, and fallback capability folders');
     restoreConfiguredAgents(store);
     return;
   }
@@ -25,6 +33,6 @@ export const initCommand: CommandHandler = async (args, { store }) => {
   const selectedIds = uniqueTargets.map((target) => target.id);
   store.saveSelectedAgents(selectedIds);
 
-  console.log('Initialized maia manifest, lockfile, and agent guidance files');
+  console.log('Initialized maia manifest, lockfile, and agent configuration');
   configureAgents(store, selectedIds);
 };

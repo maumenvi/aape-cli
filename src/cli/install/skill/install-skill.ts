@@ -47,7 +47,7 @@ export async function installSkill(store: AgentCatalogStore, options: SkillInsta
     capabilities: [],
     constraints: [],
     allowedLlms: options.allowedLlms,
-    path: path.relative(path.dirname(store.getPaths().manifest), targetPath).replaceAll('\\', '/'),
+    path: path.relative(store.getPaths().stateDir, targetPath).replaceAll('\\', '/'),
   });
   store.buildLock();
 }

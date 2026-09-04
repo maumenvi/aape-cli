@@ -13,6 +13,9 @@ export const copilot: AgentTarget = {
     return [join(cwd, '.vscode', 'mcp.json')];
   },
   buildEntry: mcpEntry,
+  skillsDir(cwd) {
+    return join(cwd, '.github', 'skills');
+  },
   instructionsFile(cwd) {
     return join(cwd, '.github', 'copilot-instructions.md');
   },

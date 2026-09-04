@@ -9,7 +9,7 @@ export function resolveManifestAndLockPaths(options: CatalogStoreOptions = {}) {
   return {
     projectRoot,
     stateDir,
-    manifest: path.resolve(projectRoot, options.manifestFile ?? path.join('.maia', 'maia.json')),
-    lock: path.resolve(projectRoot, options.lockFile ?? path.join('.maia', 'maia.lock.json')),
+    manifest: path.resolve(projectRoot, options.manifestFile ?? 'maia.json'),
+    lock: path.resolve(projectRoot, options.lockFile ?? 'maia.lock.json'),
   };
 }

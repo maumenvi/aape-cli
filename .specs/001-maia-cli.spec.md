@@ -8,7 +8,7 @@ espalha arquivos, duplica integrações e dificulta reproduzir o mesmo ambiente
 entre desenvolvedores.
 
 O Maia deve oferecer um fluxo único, orientado por terminal, para centralizar
-essas capacidades em `.maia/`, manter um catálogo e lockfile verificáveis,
+essas capacidades em `maia.json` e `.maia/`, manter um catálogo e lockfile verificáveis,
 expor as capacidades por MCP e registrar somente o que cada agente está
 autorizado a usar.
 
@@ -38,8 +38,10 @@ autorizado a usar.
 ### Inicialização e agentes
 
 - **RF-1** O sistema deve disponibilizar `maia init`, criando ou atualizando o
-  manifesto, lockfile, diretórios de capacidades, arquivos de orientação e
-  template de ambiente MCP necessários ao projeto.
+  manifesto `maia.json` e o lockfile `maia.lock.json` na raiz, e o template
+  de ambiente MCP necessário ao projeto. Os diretórios fallback
+  `.maia/mcp`, `.maia/skills` e `.maia/tools` devem ser criados somente quando
+  alguma capacidade correspondente for materializada.
 - **RF-2** O comando de inicialização deve aceitar agentes por argumento e, na
   ausência deles, permitir seleção interativa.
 - **RF-3** O sistema deve reconhecer os agentes suportados e seus aliases,
@@ -50,6 +52,12 @@ autorizado a usar.
 - **RF-5** A configuração de um agente deve registrar o proxy `maia`, o perfil
   de autorização e as capacidades autorizadas nos locais nativos do agente,
   sem sobrescrever conteúdo fora do bloco gerenciado pelo Maia.
+- **RF-5a** Cada agente deve usar seu formato nativo de instruções e capacidades:
+  Claude usa `.mcp.json`, `.claude/skills/` e `CLAUDE.md`; Copilot usa
+  `.vscode/mcp.json`, `.github/skills/` e `.github/copilot-instructions.md`;
+  os demais agentes devem usar seus caminhos nativos registrados.
+- **RF-5b** Quando nenhum agente for selecionado, skills, MCPs e tools devem
+  permanecer disponíveis nos diretórios fallback dentro de `.maia`.
 - **RF-6** Reexecutar a inicialização ou a configuração de agentes deve ser
   idempotente e não deve duplicar entradas.
 
@@ -75,8 +83,8 @@ autorizado a usar.
   `maia install`/`maia i`, aceitando versão, fonte e escopo de LLM como opções.
 - **RF-13** O sistema deve permitir selecionar todos os LLMs ou uma lista
   explícita de LLMs autorizados para uma capacidade.
-- **RF-14** Skills instaladas devem ser materializadas no diretório do Maia e,
-  quando aplicável, nos diretórios nativos dos agentes configurados.
+- **RF-14** Skills instaladas devem ser materializadas em `.maia/skills` e,
+  quando aplicável, também nos diretórios nativos dos agentes configurados.
 - **RF-15** MCPs devem aceitar os transportes e configurações declarados pelo
   catálogo, registrar variáveis de credencial necessárias e sincronizar a
   configuração nativa do agente.
@@ -136,6 +144,13 @@ autorizado a usar.
 - Quando o usuário informar agentes no `init` ou em `agent add`, o sistema deve
   configurar cada agente suportado uma única vez e rejeitar nomes inválidos com
   uma mensagem de uso.
+- Quando nenhum agente for selecionado, o sistema deve manter as capacidades nos
+  diretórios fallback `.maia/mcp`, `.maia/skills` e `.maia/tools`, sem criar
+  configurações nativas de agentes; pastas sem capacidades não devem ser
+  criadas.
+- Quando um agente for selecionado, o sistema deve criar somente os arquivos
+  nativos daquele agente; por exemplo, Claude pode criar `.mcp.json`, enquanto
+  Copilot deve criar `.vscode/mcp.json`.
 - Quando o usuário executar um comando de listagem com `--json`, o sistema deve
   emitir um payload JSON válido contendo as seções correspondentes ao inventário.
 - Quando uma consulta encontrar capacidades, o sistema deve exibir resultados

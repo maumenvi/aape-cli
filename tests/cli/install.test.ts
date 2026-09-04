@@ -29,7 +29,7 @@ describe('CLI install/remove', () => {
 
       await installCommand([], { store });
 
-      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')));
+      assert.ok(existsSync(path.resolve(tempDir, 'maia.lock.json')));
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
@@ -41,11 +41,11 @@ describe('CLI install/remove', () => {
       const store = new AgentCatalogStore({ cwd: tempDir });
       await installCommand(['mcp', 'github', '--transport', 'npx', '--package', '@modelcontextprotocol/server-github'], { store });
 
-      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'maia.json')));
-      assert.ok(existsSync(path.resolve(tempDir, '.maia', 'maia.lock.json')));
-      assert.ok(!existsSync(path.resolve(tempDir, '.maia', 'skills')));
-      assert.ok(!existsSync(path.resolve(tempDir, 'mcps')));
-      assert.ok(!existsSync(path.resolve(tempDir, '.maia', 'tools')));
+      assert.ok(existsSync(path.resolve(tempDir, 'maia.json')));
+      assert.ok(existsSync(path.resolve(tempDir, 'maia.lock.json')));
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'mcp')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'skills')), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'tools')), false);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
