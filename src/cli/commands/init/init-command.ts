@@ -4,6 +4,7 @@ import { resolveTargets } from '../agent/resolve-targets.ts';
 import { ensureInitialized } from './ensure-initialized.ts';
 import { normalizeAgentIds } from './normalize-agent-ids.ts';
 import { promptForAgentIds } from './prompt-for-agent-ids.ts';
+import { restoreConfiguredAgents } from './restore-configured-agents.ts';
 
 /** Performs the init command operation. */
 export const initCommand: CommandHandler = async (args, { store }) => {
@@ -15,6 +16,7 @@ export const initCommand: CommandHandler = async (args, { store }) => {
   if (agentIds.length === 0) {
     store.saveSelectedAgents([]);
     console.log('Initialized maia manifest, lockfile, and agent guidance files');
+    restoreConfiguredAgents(store);
     return;
   }
 

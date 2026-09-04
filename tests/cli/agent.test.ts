@@ -272,6 +272,30 @@ describe('CLI agent/init', () => {
     }
   });
 
+  it('re-applies saved agents when init runs without arguments', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-init-saved-agent-'));
+    const originalCwd = process.cwd();
+    const store = new AgentCatalogStore({ cwd: tempDir });
+
+    try {
+      process.chdir(tempDir);
+
+      await initCommand(['copilot'], { store });
+      const config = path.resolve(tempDir, '.vscode', 'mcp.json');
+      rmSync(config, { force: true });
+      rmSync(path.dirname(config), { recursive: true, force: true });
+
+      await initCommand([], { store });
+
+      assert.ok(existsSync(config));
+      const contents = readFileSync(config, 'utf8');
+      assert.match(contents, /"maia"/);
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('re-applies saved agents during CI verification', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-ci-saved-agent-'));
     const originalCwd = process.cwd();

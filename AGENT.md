@@ -137,3 +137,7 @@ tests/
 - When adding agent compatibility, wire it through the existing agent registry and config injection flow. Set `configFormat` and, where the agent supports them, `skillsDir` / `instructionsFile` on the `AgentTarget` so `configureAgents` can register MCPs and skills in that agent's standard locations.
 - When adding runtime features, keep them compatible with the built-in MCP server and local catalog layout.
 - Open follow-ups are tracked in `doc/falta.md` (e.g. `maia rm` / `maia mcp sync` should re-run `restoreConfiguredAgents`; multi-file skills only copy `SKILL.md`).
+
+
+# Agents
+Os agents estão na pasta .agents importar ele para o padrão usado.
